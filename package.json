@@ -1,0 +1,82 @@
+{
+  "name": "@shardus/distributor",
+  "version": "1.0.0.",
+  "description": "",
+  "main": "./build/distributor.js",
+  "types": "./build/distributor.d.ts",
+  "files": [
+    "build/**/*",
+    "distributor-log.json"
+  ],
+  "scripts": {
+    "release": "np --no-cleanup --no-tests --no-yarn --branch dev-release",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check": "gts check",
+    "clean": "npm-run-all clean:*",
+    "clean:typescript": "gts clean",
+    "lint": "eslint './src/**/*.ts'",
+    "lint-windows": "eslint ./src/**/*.ts",
+    "format-check": "prettier --check './src/**/*.ts'",
+    "clean:artifacts": "shx rm -rf distributor-logs/",
+    "compile": "tsc -p .",
+    "fix": "gts fix",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run check"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/shardus/relayer/distributor.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/shardus/relayer/distributor/issues"
+  },
+  "homepage": "https://gitlab.com/shardus/relayer/distributor#readme",
+  "devDependencies": {
+    "@types/node": "18.16.1",
+    "@types/node-fetch": "^2.5.4",
+    "@types/socket.io": "^2.1.11",
+    "@typescript-eslint/eslint-plugin": "^5.60.0",
+    "@typescript-eslint/typescript-estree": "^5.60.0",
+    "eslint-config-prettier": "^8.6.0",
+    "eslint-config-standard": "^14.1.0",
+    "eslint-plugin-import": "^2.19.1",
+    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-no-unsanitized": "^4.0.2",
+    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-security": "^1.7.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "eslint-plugin-xss": "^0.1.12",
+    "@types/socket.io-client": "^1.4.33",
+    "gts": "^3.1.0",
+    "np": "^7.6.2",
+    "npm-run-all": "^4.1.5",
+    "shx": "^0.3.4",
+    "typescript": "^4.4.4",
+    "typescript-json-schema": "^0.51.0"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.2.0",
+    "@fastify/rate-limit": "^7.6.0",
+    "@shardus/crypto-utils": "^4.0.4",
+    "@shardus/types": "^1.0.8",
+    "deepmerge": "^4.2.2",
+    "eslint": "^8.43.0",
+    "fastify": "4.12.0",
+    "log4js": "^6.3.0",
+    "log4js-extend": "^0.2.1",
+    "minimist": "^1.2.0",
+    "neverthrow": "^6.0.0",
+    "node-fetch": "^2.6.8",
+    "socket.io": "^4.5.1",
+    "socket.io-client": "^2.3.0",
+    "sqlite3": "^5.0.0",
+    "streamroller": "^3.1.3"
+  }
+}
