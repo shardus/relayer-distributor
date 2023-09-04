@@ -3,3 +3,7 @@ node_modules/
 build/
 distributor-logs/
 .direnv/
+
+archiver-db
+archiver-db-shm
+archiver-db-wal
