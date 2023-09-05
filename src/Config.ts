@@ -2,6 +2,7 @@ import { readFileSync } from 'fs'
 import * as Logger from './Logger'
 import * as merge from 'deepmerge'
 import * as minimist from 'minimist'
+import { type } from 'os'
 
 export interface Config {
   DISTRIBUTOR_IP: string
@@ -14,6 +15,8 @@ export interface Config {
   RATE_LIMIT: number
   VERBOSE: boolean
   useSerialization: boolean
+  limitToSubsribersOnly: boolean
+  subsribers: [] | Subsribers[]
 }
 
 let config: Config = {
@@ -25,11 +28,24 @@ let config: Config = {
   DISTRIBUTOR_SECRET_KEY:
     process.env.DISTRIBUTOR_SECRET_KEY ||
     '3be00019f23847529bd63e41124864983175063bb524bd54ea3c155f2fa12969758b1c119412298802cd28dbfa394cdfeecc4074492d60844cc192d632d84de3',
-  ARCHIVER_DB_PATH: 'archiver-db',
+  ARCHIVER_DB_PATH: 'archiverdb.sqlite3',
   DISTRIBUTOR_LOGS: 'distributor-logs',
   RATE_LIMIT: 100, // 100 req per second,
   VERBOSE: false,
   useSerialization: false,
+  limitToSubsribersOnly: false,
+  subsribers: [],
+}
+
+export interface Subsribers {
+  publicKey: string
+  expiredTimestamp: number
+  subscriptionType: SubscriptionType
+}
+
+export enum SubscriptionType {
+  FIREHOST = 'FIREHOST',
+  ACCOUNTS = 'ACCOUNTS',
 }
 
 export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args: string[]) {

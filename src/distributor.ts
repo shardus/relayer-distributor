@@ -94,6 +94,7 @@ async function start() {
         process.exit(1)
       }
       Logger.mainLogger.debug('Distributor has started.')
+      addSigListeners()
     }
   )
 }
@@ -106,6 +107,16 @@ export function getDistributorInfo(): DistributorInfo {
 
 export function getDistributorSecretKey(): string {
   return distributorInfo.secretKey
+}
+
+function addSigListeners() {
+  process.on('SIGUSR1', async () => {
+    Logger.mainLogger.debug('DETECTED SIGUSR1 SIGNAL')
+    // Reload the distributor-config.json
+    overrideDefaultConfig(file, env, args)
+    Logger.mainLogger.debug('Config reloaded', config)
+  })
+  Logger.mainLogger.debug('Registerd signal listeners.')
 }
 
 start()

@@ -1,3 +1,4 @@
+import { Signature } from '@shardus/crypto-utils'
 import { FastifyInstance, FastifyRequest } from 'fastify'
 import { Server, IncomingMessage, ServerResponse } from 'http'
 import { config } from './Config'
@@ -14,22 +15,37 @@ const TXID_LENGTH = 64
 
 export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, ServerResponse>) {
   type CycleInfoRequest = FastifyRequest<{
-    Querystring: { start: string; end: string; count: string }
+    Body: { start: number; end: number; count: number; sender: string; sign: Signature }
   }>
 
-  server.get('/cycleinfo', async (_request: CycleInfoRequest, reply) => {
-    let { start, end, count } = _request.query
+  server.post('/cycleinfo', async (_request: CycleInfoRequest, reply) => {
+    const requestData = _request.body
+    const result = validateRequestData(requestData, {
+      start: 'n?',
+      end: 'n?',
+      count: 'n?',
+      sender: 's',
+      sign: 'o',
+    })
+    if (!result.success) {
+      reply.send(Crypto.sign({ success: false, error: result.error }))
+      return
+    }
+    let { start, end, count } = _request.body
     let cycleInfo = []
     if (count) {
-      let cycleCount = parseInt(count)
-      if (!(cycleCount > 0 && cycleCount <= 100)) {
-        reply.send(Crypto.sign({ success: false, error: `Invalid cycle count ${count}` }))
+      if (count <= 0 || Number.isNaN(count)) {
+        reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
         return
       }
-      cycleInfo = await CycleDB.queryLatestCycleRecords(cycleCount)
+      if (count > 100) {
+        reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
+        return
+      }
+      cycleInfo = await CycleDB.queryLatestCycleRecords(count)
     } else if (start || end) {
-      let from = parseInt(start)
-      let to = parseInt(end)
+      const from = start ? start : 0
+      const to = end ? end : from + 100
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         Logger.mainLogger.error(`Invalid start and end counters`)
         reply.send(Crypto.sign({ success: false, error: `Invalid start and end counters` }))
@@ -57,36 +73,53 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
   })
 
   type ReceiptRequest = FastifyRequest<{
-    Querystring: {
-      start: string
-      end: string
-      startCycle: string
-      endCycle: string
+    Body: {
+      count: number
+      start: number
+      end: number
+      startCycle: number
+      endCycle: number
       type: string
-      page: string
+      page: number
       txId: string
       txIdList: string
+      sender: string
+      sign: Signature
     }
   }>
 
-  server.get('/originalTx', async (_request: ReceiptRequest, reply) => {
-    let err = Utils.validateTypes(_request.query, {
-      start: 's?',
-      end: 's?',
-      startCycle: 's?',
-      endCycle: 's?',
+  server.post('/originalTx', async (_request: ReceiptRequest, reply) => {
+    const requestData = _request.body
+    const result = validateRequestData(requestData, {
+      count: 'n?',
+      start: 'n?',
+      end: 'n?',
+      startCycle: 'n?',
+      endCycle: 'n?',
       type: 's?',
-      page: 's?',
+      page: 'n?',
       txId: 's?',
       txIdList: 's?',
+      sender: 's',
+      sign: 'o',
     })
-    if (err) {
-      reply.send(Crypto.sign({ success: false, error: err }))
+    if (!result.success) {
+      reply.send(Crypto.sign({ success: false, error: result.error }))
       return
     }
-    let { start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.query
+    let { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
     let originalTxs: any = []
-    if (txId) {
+    if (count) {
+      if (count <= 0 || Number.isNaN(count)) {
+        reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
+        return
+      }
+      if (count > 100) {
+        reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
+        return
+      }
+      originalTxs = await OriginalTxDB.queryLatestOriginalTxs(count)
+    } else if (txId) {
       if (txId.length !== TXID_LENGTH) {
         reply.send(
           Crypto.sign({
@@ -123,9 +156,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         const originalTx = await OriginalTxDB.queryOriginalTxDataByTxId(txId)
         if (originalTx) originalTxs.push(originalTx)
       }
-    } else if (start && end) {
-      let from = parseInt(start)
-      let to = parseInt(end)
+    } else if (start || end) {
+      const from = start ? start : 0
+      const to = end ? end : from + 100
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
           Crypto.sign({
@@ -146,9 +179,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         return
       }
       originalTxs = await OriginalTxDB.queryOriginalTxsData(from, count)
-    } else if (startCycle && endCycle) {
-      let from = parseInt(startCycle)
-      let to = parseInt(endCycle)
+    } else if (startCycle || endCycle) {
+      const from = startCycle ? startCycle : 0
+      const to = endCycle ? endCycle : from + 100
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
           Crypto.sign({
@@ -176,7 +209,11 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         let skip = 0
         let limit = 100
         if (page) {
-          skip = parseInt(page) - 1
+          if (page < 1 || Number.isNaN(page)) {
+            reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
+            return
+          }
+          skip = page - 1
           if (skip > 0) skip = skip * limit
         }
         originalTxs = await OriginalTxDB.queryOriginalTxsData(skip, limit, from, to)
@@ -188,24 +225,38 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
     reply.send(res)
   })
 
-  server.get('/receipt', async (_request: ReceiptRequest, reply) => {
-    let err = Utils.validateTypes(_request.query, {
-      start: 's?',
-      end: 's?',
-      startCycle: 's?',
-      endCycle: 's?',
+  server.post('/receipt', async (_request: ReceiptRequest, reply) => {
+    const requestData = _request.body
+    const result = validateRequestData(requestData, {
+      count: 'n?',
+      start: 'n?',
+      end: 'n?',
+      startCycle: 'n?',
+      endCycle: 'n?',
       type: 's?',
-      page: 's?',
+      page: 'n?',
       txId: 's?',
       txIdList: 's?',
+      sender: 's',
+      sign: 'o',
     })
-    if (err) {
-      reply.send(Crypto.sign({ success: false, error: err }))
+    if (!result.success) {
+      reply.send(Crypto.sign({ success: false, error: result.error }))
       return
     }
-    let { start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.query
+    let { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
     let receipts = []
-    if (txId) {
+    if (count) {
+      if (count <= 0 || Number.isNaN(count)) {
+        reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
+        return
+      }
+      if (count > 100) {
+        reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
+        return
+      }
+      receipts = await ReceiptDB.queryLatestReceipts(count)
+    } else if (txId) {
       if (txId.length !== TXID_LENGTH) {
         reply.send(
           Crypto.sign({
@@ -242,9 +293,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         const receipt = await ReceiptDB.queryReceiptByReceiptId(txId)
         if (receipt) receipts.push(receipt)
       }
-    } else if (start && end) {
-      let from = parseInt(start)
-      let to = parseInt(end)
+    } else if (start || end) {
+      const from = start ? start : 0
+      const to = end ? end : from + 100
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
           Crypto.sign({
@@ -265,9 +316,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         return
       }
       receipts = await ReceiptDB.queryReceipts(from, count)
-    } else if (startCycle && endCycle) {
-      let from = parseInt(startCycle)
-      let to = parseInt(endCycle)
+    } else if (startCycle || endCycle) {
+      const from = startCycle ? startCycle : 0
+      const to = endCycle ? endCycle : from + 100
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
           Crypto.sign({
@@ -295,7 +346,11 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         let skip = 0
         let limit = 100
         if (page) {
-          skip = parseInt(page) - 1
+          if (page < 1 || Number.isNaN(page)) {
+            reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
+            return
+          }
+          skip = page - 1
           if (skip > 0) skip = skip * limit
         }
         receipts = await ReceiptDB.queryReceiptsBetweenCycles(skip, limit, from, to)
@@ -309,37 +364,52 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
 
   type AccountRequest = FastifyRequest<{
     Querystring: {
-      start: string
-      end: string
-      startCycle: string
-      endCycle: string
-      type: string
-      page: string
+      count: number
+      start: number
+      end: number
+      startCycle: number
+      endCycle: number
+      page: number
       accountId: string
+      sender: string
+      sign: Signature
     }
   }>
 
-  server.get('/account', async (_request: AccountRequest, reply) => {
-    let err = Utils.validateTypes(_request.query, {
-      start: 's?',
-      end: 's?',
-      startCycle: 's?',
-      endCycle: 's?',
-      page: 's?',
-      address: 's?',
+  server.post('/account', async (_request: AccountRequest, reply) => {
+    const requestData = _request.body
+    const result = validateRequestData(requestData, {
+      count: 'n?',
+      start: 'n?',
+      end: 'n?',
+      startCycle: 'n?',
+      endCycle: 'n?',
+      page: 'n?',
       accountId: 's?',
+      sender: 's',
+      sign: 'o',
     })
-    if (err) {
-      reply.send(Crypto.sign({ success: false, error: err }))
+    if (!result.success) {
+      reply.send(Crypto.sign({ success: false, error: result.error }))
       return
     }
     let accounts = []
     let totalAccounts = 0
     let res
-    let { start, end, startCycle, endCycle, page, accountId } = _request.query
-    if (start && end) {
-      let from = parseInt(start)
-      let to = parseInt(end)
+    let { count, start, end, startCycle, endCycle, page, accountId } = _request.query
+    if (count) {
+      if (count <= 0 || Number.isNaN(count)) {
+        reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
+        return
+      }
+      if (count > 100) {
+        reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
+        return
+      }
+      accounts = await AccountDB.queryLatestAccounts(count)
+    } else if (start || end) {
+      const from = start ? start : 0
+      const to = end ? end : from + 100
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
           Crypto.sign({
@@ -363,9 +433,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       res = Crypto.sign({
         accounts,
       })
-    } else if (startCycle && endCycle) {
-      let from = parseInt(startCycle)
-      let to = parseInt(endCycle)
+    } else if (startCycle || endCycle) {
+      const from = startCycle ? startCycle : 0
+      const to = endCycle ? endCycle : from + 100
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
           Crypto.sign({
@@ -387,22 +457,26 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       }
       totalAccounts = await AccountDB.queryAccountCountBetweenCycles(from, to)
       if (page) {
-        let offset = parseInt(page)
-        if (offset < 0) {
+        if (page < 1 || Number.isNaN(page)) {
           reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
           return
         }
+        let offset = page
         let skip = 0
         let limit = 10000 // query 10000 accounts
         if (offset > 0) {
-          skip = offset * 10000
+          skip = (offset - 1) * 10000
         }
         accounts = await AccountDB.queryAccountsBetweenCycles(skip, limit, from, to)
+        res = Crypto.sign({
+          accounts,
+          totalAccounts,
+        })
+      } else {
+        res = Crypto.sign({
+          totalAccounts,
+        })
       }
-      res = Crypto.sign({
-        accounts,
-        totalAccounts,
-      })
     } else if (accountId) {
       accounts = await AccountDB.queryAccountByAccountId(accountId)
       res = Crypto.sign({
@@ -420,37 +494,53 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
 
   type TransactionRequest = FastifyRequest<{
     Querystring: {
-      start: string
-      end: string
-      startCycle: string
-      endCycle: string
+      count: number
+      start: number
+      end: number
+      startCycle: number
+      endCycle: number
       txId: string
-      page: string
+      page: number
       accountId: string
+      sender: string
+      sign: Signature
     }
   }>
 
-  server.get('/transaction', async (_request: TransactionRequest, reply) => {
+  server.post('/transaction', async (_request: TransactionRequest, reply) => {
     let err = Utils.validateTypes(_request.query, {
-      start: 's?',
-      end: 's?',
+      count: 'n?',
+      start: 'n?',
+      end: 'n?',
       txId: 's?',
       accountId: 's?',
-      startCycle: 's?',
-      endCycle: 's?',
-      page: 's?',
+      startCycle: 'n?',
+      endCycle: 'n?',
+      page: 'n?',
+      sender: 's',
+      sign: 'o',
     })
     if (err) {
       reply.send(Crypto.sign({ success: false, error: err }))
       return
     }
-    let { start, end, txId, accountId, startCycle, endCycle, page } = _request.query
+    let { count, start, end, txId, accountId, startCycle, endCycle, page } = _request.query
     let transactions = []
     let totalTransactions = 0
     let res
-    if (start && end) {
-      let from = parseInt(start)
-      let to = parseInt(end)
+    if (count) {
+      if (count <= 0 || Number.isNaN(count)) {
+        reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
+        return
+      }
+      if (count > 100) {
+        reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
+        return
+      }
+      transactions = await TransactionDB.queryLatestTransactions(count)
+    } else if (start || end) {
+      const from = start ? start : 0
+      const to = end ? end : from + 100
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
           Crypto.sign({
@@ -474,9 +564,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       res = Crypto.sign({
         transactions,
       })
-    } else if (startCycle && endCycle) {
-      let from = parseInt(startCycle)
-      let to = parseInt(endCycle)
+    } else if (startCycle || endCycle) {
+      const from = startCycle ? startCycle : 0
+      const to = endCycle ? endCycle : from + 100
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
           Crypto.sign({
@@ -498,22 +588,26 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       }
       totalTransactions = await TransactionDB.queryTransactionCountBetweenCycles(from, to)
       if (page) {
-        let offset = parseInt(page)
-        if (offset < 0) {
+        if (page < 1 || Number.isNaN(page)) {
           reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
           return
         }
+        let offset = page
         let skip = 0
         let limit = 10000 // query 10000 transactions
         if (offset > 0) {
-          skip = offset * 10000
+          skip = (offset - 1) * 10000
         }
         transactions = await TransactionDB.queryTransactionsBetweenCycles(skip, limit, from, to)
+        res = Crypto.sign({
+          transactions,
+          totalTransactions,
+        })
+      } else {
+        res = Crypto.sign({
+          totalTransactions,
+        })
       }
-      res = Crypto.sign({
-        transactions,
-        totalTransactions,
-      })
     } else if (txId) {
       transactions = await TransactionDB.queryTransactionByTxId(txId)
       res = Crypto.sign({
@@ -533,19 +627,23 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
     reply.send(res)
   })
 
-  server.get('/totalData', async (_request, reply) => {
+  server.post('/totalData', async (_request, reply) => {
+    let err = Utils.validateTypes(_request.query, {
+      sender: 's',
+      sign: 'o',
+    })
+    if (err) {
+      reply.send(Crypto.sign({ success: false, error: err }))
+      return
+    }
     const totalCycles = await CycleDB.queryCyleCount()
     const totalAccounts = await AccountDB.queryAccountCount()
     const totalTransactions = await TransactionDB.queryTransactionCount()
     const totalReceipts = await ReceiptDB.queryReceiptCount()
     const totalOriginalTxs = await OriginalTxDB.queryOriginalTxDataCount()
-    reply.send({
-      totalCycles,
-      totalAccounts,
-      totalTransactions,
-      totalReceipts,
-      totalOriginalTxs,
-    })
+    reply.send(
+      Crypto.sign({ totalCycles, totalAccounts, totalTransactions, totalReceipts, totalOriginalTxs })
+    )
   })
 
   // Debug Config Endpoint
@@ -561,4 +659,31 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       reply.send(res)
     }
   )
+}
+
+const validateRequestData = (data: any, expectedDataType: any) => {
+  try {
+    let err = Utils.validateTypes(data, expectedDataType)
+    if (err) {
+      Logger.mainLogger.error('Invalid request data ', err)
+      return { success: false, error: 'Invalid request data ' + err }
+    }
+    err = Utils.validateTypes(data.sign, { owner: 's', sig: 's' })
+    if (err) {
+      Logger.mainLogger.error('Invalid request data signature ', err)
+      return { success: false, error: 'Invalid request data signature ' + err }
+    }
+    if (data.sign.owner !== data.sender) {
+      Logger.mainLogger.error('Data sender publicKey and sign owner key does not match')
+      return { success: false, error: 'Data sender publicKey and sign owner key does not match' }
+    }
+    if (!Crypto.verify(data)) {
+      Logger.mainLogger.error('Invalid signature', data)
+      return { success: false, error: 'Invalid signature' }
+    }
+    return { success: true }
+  } catch (e) {
+    Logger.mainLogger.error('Error validating request data', e)
+    return { success: false, error: 'Error validating request data' }
+  }
 }

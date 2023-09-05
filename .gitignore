@@ -4,6 +4,6 @@ build/
 distributor-logs/
 .direnv/
 
-archiver-db
-archiver-db-shm
-archiver-db-wal
+archiverdb.sqlite3
+archiverdb.sqlite3-shm
+archiverdb.sqlite3-wal
