@@ -15,8 +15,8 @@ export interface Config {
   RATE_LIMIT: number
   VERBOSE: boolean
   useSerialization: boolean
-  limitToSubsribersOnly: boolean
-  subsribers: [] | Subsribers[]
+  limitToSubscribersOnly: boolean
+  subscribers: [] | Subscribers[]
 }
 
 let config: Config = {
@@ -33,13 +33,13 @@ let config: Config = {
   RATE_LIMIT: 100, // 100 req per second,
   VERBOSE: false,
   useSerialization: false,
-  limitToSubsribersOnly: false,
-  subsribers: [],
+  limitToSubscribersOnly: false,
+  subscribers: [],
 }
 
-export interface Subsribers {
+export interface Subscribers {
   publicKey: string
-  expiredTimestamp: number
+  expirationTimestamp: number
   subscriptionType: SubscriptionType
 }
 

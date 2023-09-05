@@ -3,7 +3,7 @@ import fastify, { FastifyInstance } from 'fastify'
 import fastifyCors from '@fastify/cors'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { Server, IncomingMessage, ServerResponse } from 'http'
-import { overrideDefaultConfig, config } from './Config'
+import { overrideDefaultConfig, config, Subscribers } from './Config'
 import * as Crypto from './Crypto'
 import * as dbstore from './dbstore'
 import * as Logger from './Logger'
@@ -24,6 +24,8 @@ let distributorInfo: DistributorInfo = {
   publicKey: '',
   secretKey: '',
 }
+
+export const distributorSubscribers: Map<string, Subscribers> = new Map()
 
 // Override default config params from config file, env vars, and cli args
 const file = join(process.cwd(), 'distributor-config.json')
@@ -78,6 +80,9 @@ async function start() {
     Logger.mainLogger.debug('Collector has connected')
   })
 
+  // Refresh the subscribers
+  refreshSubscribers()
+
   // Register routes
   registerRoutes(server)
 
@@ -109,14 +114,24 @@ export function getDistributorSecretKey(): string {
   return distributorInfo.secretKey
 }
 
-function addSigListeners() {
+const addSigListeners = () => {
   process.on('SIGUSR1', async () => {
     Logger.mainLogger.debug('DETECTED SIGUSR1 SIGNAL')
     // Reload the distributor-config.json
     overrideDefaultConfig(file, env, args)
     Logger.mainLogger.debug('Config reloaded', config)
+    // Refresh the subscribers
+    refreshSubscribers()
   })
   Logger.mainLogger.debug('Registerd signal listeners.')
+}
+
+const refreshSubscribers = () => {
+  const subscribers: Subscribers[] = config.subscribers
+  for (let i = 0; i < subscribers.length; i++) {
+    distributorSubscribers.set(subscribers[i].publicKey, subscribers[i])
+  }
+  Logger.mainLogger.debug('Subscribers refreshed', distributorSubscribers)
 }
 
 start()

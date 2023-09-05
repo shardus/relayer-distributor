@@ -10,6 +10,7 @@ import * as AccountDB from './dbstore/accounts'
 import * as TransactionDB from './dbstore/transactions'
 import * as ReceiptDB from './dbstore/receipts'
 import * as OriginalTxDB from './dbstore/originalTxsData'
+import { distributorSubscribers } from './distributor'
 
 const TXID_LENGTH = 64
 
@@ -646,6 +647,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
     )
   })
 
+  // TODO: Put this endpoint behind the debug middleware
   // Debug Config Endpoint
   server.get(
     '/config',
@@ -655,7 +657,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
     //   },
     // },
     (_request, reply) => {
-      const res = Crypto.sign(config)
+      const res = Crypto.sign({
+        config,
+      })
       reply.send(res)
     }
   )
@@ -676,6 +680,17 @@ const validateRequestData = (data: any, expectedDataType: any) => {
     if (data.sign.owner !== data.sender) {
       Logger.mainLogger.error('Data sender publicKey and sign owner key does not match')
       return { success: false, error: 'Data sender publicKey and sign owner key does not match' }
+    }
+    if (config.limitToSubscribersOnly) {
+      if (!distributorSubscribers.has(data.sender)) {
+        Logger.mainLogger.error('Data request sender is not a subscriber')
+        return { success: false, error: 'Data request sender is not a subscriber' }
+      }
+      const subscriber = distributorSubscribers.get(data.sender)
+      if (subscriber.expirationTimestamp !== 0 && subscriber.expirationTimestamp > Date.now()) {
+        Logger.mainLogger.error('Subscriber subscription expired')
+        return { success: false, error: 'Subscriber subscription expired' }
+      }
     }
     if (!Crypto.verify(data)) {
       Logger.mainLogger.error('Invalid signature', data)
