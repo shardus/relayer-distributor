@@ -44,7 +44,7 @@ export interface Subscribers {
 }
 
 export enum SubscriptionType {
-  FIREHOST = 'FIREHOST',
+  FIREHOSE = 'FIREHOSE',
   ACCOUNTS = 'ACCOUNTS',
 }
 

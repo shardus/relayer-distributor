@@ -4,13 +4,13 @@
   "DISTRIBUTOR_HASH_KEY": "69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc",
   "DISTRIBUTOR_PUBLIC_KEY": "758b1c119412298802cd28dbfa394cdfeecc4074492d60844cc192d632d84de3",
   "DISTRIBUTOR_SECRET_KEY": "3be00019f23847529bd63e41124864983175063bb524bd54ea3c155f2fa12969758b1c119412298802cd28dbfa394cdfeecc4074492d60844cc192d632d84de3",
-  "ARCHIVER_DB_PATH": "archiverdb.sqlite3",
+  "ARCHIVER_DB_PATH": "../../../Shardeum/server/instances/archiver-db-4000/archiverdb-4000.sqlite3",
   "limitToSubsribersOnly": true,
   "subscribers": [
     {
       "publicKey": "9426b64e675cad739d69526bf7e27f3f304a8a03dca508a9180f01e9269ce447",
       "expirationTimestamp": 0,
-      "subscriptionType": "FIREHOST"
+      "subscriptionType": "FIREHOSE"
     }
   ]
 }

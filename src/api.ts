@@ -364,7 +364,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
   })
 
   type AccountRequest = FastifyRequest<{
-    Querystring: {
+    Body: {
       count: number
       start: number
       end: number
@@ -397,7 +397,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
     let accounts = []
     let totalAccounts = 0
     let res
-    let { count, start, end, startCycle, endCycle, page, accountId } = _request.query
+    let { count, start, end, startCycle, endCycle, page, accountId } = _request.body
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
         reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
@@ -494,7 +494,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
   })
 
   type TransactionRequest = FastifyRequest<{
-    Querystring: {
+    Body: {
       count: number
       start: number
       end: number
@@ -509,7 +509,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
   }>
 
   server.post('/transaction', async (_request: TransactionRequest, reply) => {
-    let err = Utils.validateTypes(_request.query, {
+    const requestData = _request.body
+    const result = validateRequestData(requestData, {
       count: 'n?',
       start: 'n?',
       end: 'n?',
@@ -521,11 +522,11 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       sender: 's',
       sign: 'o',
     })
-    if (err) {
-      reply.send(Crypto.sign({ success: false, error: err }))
+    if (!result.success) {
+      reply.send(Crypto.sign({ success: false, error: result.error }))
       return
     }
-    let { count, start, end, txId, accountId, startCycle, endCycle, page } = _request.query
+    let { count, start, end, txId, accountId, startCycle, endCycle, page } = _request.body
     let transactions = []
     let totalTransactions = 0
     let res
@@ -629,12 +630,13 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
   })
 
   server.post('/totalData', async (_request, reply) => {
-    let err = Utils.validateTypes(_request.query, {
+    const requestData = _request.body
+    const result = validateRequestData(requestData, {
       sender: 's',
       sign: 'o',
     })
-    if (err) {
-      reply.send(Crypto.sign({ success: false, error: err }))
+    if (!result.success) {
+      reply.send(Crypto.sign({ success: false, error: result.error }))
       return
     }
     const totalCycles = await CycleDB.queryCyleCount()
