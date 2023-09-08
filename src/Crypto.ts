@@ -5,7 +5,7 @@ import { getDistributorInfo, getDistributorSecretKey } from './distributor'
 
 // Crypto initialization fns
 
-export function setCryptoHashKey(hashkey: string) {
+export function setCryptoHashKey(hashkey: string): any {
   core.init(hashkey)
 }
 
