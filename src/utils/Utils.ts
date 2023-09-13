@@ -1,7 +1,7 @@
 import * as util from 'util'
 import * as Logger from '../Logger'
 
-export async function sleep(time: number) {
+export async function sleep(time: number): Promise<void> {
   Logger.mainLogger.debug('sleeping for', time)
   return new Promise((resolve: any) => {
     setTimeout(() => {
@@ -24,7 +24,7 @@ Example of def:
 Returns a string with the first error encountered or and empty string ''.
 Errors are: "[name] is required" or "[name] must be, [type]"
 */
-export function validateTypes(inp: any, def: any) {
+export function validateTypes(inp: any, def: any): string {
   if (inp === undefined) return 'input is undefined'
   if (inp === null) return 'input is null'
   if (typeof inp !== 'object') return 'input must be object, not ' + typeof inp
@@ -45,7 +45,7 @@ export function validateTypes(inp: any, def: any) {
     o: 'object',
   }
   const fields = Object.keys(def)
-  for (let name of fields) {
+  for (const name of fields) {
     const types = def[name]
     const opt = types.substr(-1, 1) === '?' ? 1 : 0
     if (inp[name] === undefined && !opt) return name + ' is required'
@@ -56,7 +56,7 @@ export function validateTypes(inp: any, def: any) {
       for (let t = 0; t < types.length - opt; t++) {
         let it = map[typeof inp[name]]
         it = Array.isArray(inp[name]) ? 'a' : it
-        let is = types.substr(t, 1)
+        const is = types.substr(t, 1)
         if (it === is) {
           found = 1
           break
@@ -71,6 +71,6 @@ export function validateTypes(inp: any, def: any) {
 /**
  * Checks whether the given thing is undefined
  */
-export function isUndefined(thing: unknown) {
+export function isUndefined(thing: unknown): boolean {
   return typeof thing === 'undefined'
 }

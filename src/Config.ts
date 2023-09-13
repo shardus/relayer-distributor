@@ -48,7 +48,7 @@ export enum SubscriptionType {
   ACCOUNTS = 'ACCOUNTS',
 }
 
-export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args: string[]) {
+export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args: string[]): void {
   // Override config from config file
   try {
     const fileConfig = JSON.parse(readFileSync(file, { encoding: 'utf8' }))
@@ -74,9 +74,9 @@ export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args
         }
         case 'object': {
           try {
-            var parameterStr = env[param]
+            const parameterStr = env[param]
             if (parameterStr) {
-              let parameterObj = JSON.parse(parameterStr)
+              const parameterObj = JSON.parse(parameterStr)
               config[param] = parameterObj
             }
           } catch (e) {

@@ -1,5 +1,5 @@
 import { join } from 'path'
-import './sync'
+import * as url from 'url'
 import fastify, { FastifyInstance } from 'fastify'
 import fastifyCors from '@fastify/cors'
 import fastifyRateLimit from '@fastify/rate-limit'
@@ -10,15 +10,17 @@ import * as dbstore from './dbstore'
 import * as Logger from './Logger'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
-import { registerRoutes } from './api'
+import { registerRoutes, validateRequestData } from './api'
 import { assignChildProcessToClient, showAllProcesses } from './child-process'
 
+// Initiate fetching data from the archiver/explorer/collector
+import './sync'
 let httpServer: http.Server
 export interface DistributorInfo {
   ip: string
   port: number
   publicKey: string
-  secretKey: string
+  secretKey?: string
 }
 
 const distributorInfo: DistributorInfo = {
@@ -62,7 +64,10 @@ async function start(): Promise<void> {
   distributorInfo.publicKey = config.DISTRIBUTOR_PUBLIC_KEY
   distributorInfo.secretKey = config.DISTRIBUTOR_SECRET_KEY
 
-  await dbstore.initializeDB(config)
+  // await dbstore.initializeDB(config)
+
+  // Refresh the subscribers
+  refreshSubscribers()
 
   const serverFactory = (handler): any => {
     httpServer = http.createServer((req, res) => {
@@ -83,29 +88,37 @@ async function start(): Promise<void> {
 
   // Handles incoming upgrade requests from clients (to upgrade to a Socket connection)
   httpServer.on('upgrade', (req: http.IncomingMessage, socket: any, head: Buffer) => {
-    const clientKey = req.headers ? req.headers?.['sec-websocket-key'] : undefined
+    const queryObject = url.parse(req.url!, true).query
+    const decodedData = decodeURIComponent(queryObject.data as string)
+    const clientData = JSON.parse(decodedData)
 
-    if (!clientKey)
-      throw new Error(`No client key found in headers for upgrade request from Client @ ${req.headers.host}`)
-
-    console.log('\n Assigning Child Process to Client...')
-
-    assignChildProcessToClient(clientKey, {
-      header: { headers: req.headers, method: req.method, head },
-      socket,
+    const { success: isClientAuthorized } = validateRequestData(clientData, {
+      sender: 's',
+      sign: 'o',
     })
-    showAllProcesses()
+
+    if (isClientAuthorized) {
+      const clientKey = clientData.sender ?? undefined
+      if (!clientKey)
+        throw new Error(`No client/public key found in upgrade request from Client @ ${req.headers.host}`)
+
+      console.log('\n Assigning Child Process to Client...')
+
+      assignChildProcessToClient(clientKey, {
+        header: { headers: req.headers, method: req.method, head, clientKey },
+        socket,
+      })
+      showAllProcesses()
+    } else console.log(`Unauthorized Client Request from ${req.headers.host}`)
   })
 
-  // Refresh the subscribers
-  refreshSubscribers()
-
-  // Register routes
+  // Register API routes
   registerRoutes(fastifyServer as FastifyInstance<http.Server, http.IncomingMessage, http.ServerResponse>)
 
   // Start server and bind to port on all interfaces
   fastifyServer.ready(() => {
     httpServer.listen(config.DISTRIBUTOR_PORT, () => {
+      console.log(`Distributor-Server listening on port ${config.DISTRIBUTOR_PORT}!`)
       Logger.mainLogger.debug('Listening', config.DISTRIBUTOR_PORT)
       Logger.mainLogger.debug('Distributor has started.')
       addSigListeners()
@@ -125,10 +138,10 @@ export function getDistributorInfo(): DistributorInfo {
 }
 
 export function getDistributorSecretKey(): string {
-  return distributorInfo.secretKey
+  return distributorInfo.secretKey!
 }
 
-const addSigListeners = () => {
+const addSigListeners = (): void => {
   process.on('SIGUSR1', async () => {
     Logger.mainLogger.debug('DETECTED SIGUSR1 SIGNAL')
     // Reload the distributor-config.json
@@ -137,10 +150,13 @@ const addSigListeners = () => {
     // Refresh the subscribers
     refreshSubscribers()
   })
+  process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception in Distributor: ', error)
+  })
   Logger.mainLogger.debug('Registerd signal listeners.')
 }
 
-const refreshSubscribers = () => {
+const refreshSubscribers = (): void => {
   const subscribers: Subscribers[] = config.subscribers
   for (let i = 0; i < subscribers.length; i++) {
     distributorSubscribers.set(subscribers[i].publicKey, subscribers[i])

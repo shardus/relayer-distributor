@@ -14,7 +14,7 @@ import { distributorSubscribers } from './distributor'
 
 const TXID_LENGTH = 64
 
-export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, ServerResponse>) {
+export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, ServerResponse>): void {
   type CycleInfoRequest = FastifyRequest<{
     Body: { start: number; end: number; count: number; sender: string; sign: Signature }
   }>
@@ -32,7 +32,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       reply.send(Crypto.sign({ success: false, error: result.error }))
       return
     }
-    let { start, end, count } = _request.body
+    const { start, end, count } = _request.body
     let cycleInfo = []
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
@@ -53,7 +53,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         return
       }
       // Limit the number of cycles to 100
-      let cycleCount = to - from
+      const cycleCount = to - from
       if (cycleCount > 100) {
         Logger.mainLogger.error(`Exceed maximum limit of 100 cycles`)
         reply.send(Crypto.sign({ success: false, error: `Exceed maximum limit of 100 cycles` }))
@@ -108,7 +108,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       reply.send(Crypto.sign({ success: false, error: result.error }))
       return
     }
-    let { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
+    const { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
     let originalTxs: any = []
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
@@ -132,7 +132,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       }
       originalTxs = await OriginalTxDB.queryOriginalTxDataByTxId(txId)
     } else if (txIdList) {
-      let txIdListArr = []
+      let txIdListArr: string[] = []
       try {
         txIdListArr = JSON.parse(txIdList)
       } catch (e) {
@@ -169,7 +169,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -192,7 +192,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 1000) {
         reply.send(
           Crypto.sign({
@@ -208,7 +208,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         originalTxs = await OriginalTxDB.queryOriginalTxDataCount(from, to)
       } else {
         let skip = 0
-        let limit = 100
+        const limit = 100
         if (page) {
           if (page < 1 || Number.isNaN(page)) {
             reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
@@ -245,8 +245,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       reply.send(Crypto.sign({ success: false, error: result.error }))
       return
     }
-    let { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
-    let receipts = []
+    const { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
+    let receipts: any = []
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
         reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
@@ -269,7 +269,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       }
       receipts = await ReceiptDB.queryReceiptByReceiptId(txId)
     } else if (txIdList) {
-      let txIdListArr = []
+      let txIdListArr: string[] = []
       try {
         txIdListArr = JSON.parse(txIdList)
       } catch (e) {
@@ -291,7 +291,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
           )
           return
         }
-        const receipt = await ReceiptDB.queryReceiptByReceiptId(txId)
+        const receipt: any = await ReceiptDB.queryReceiptByReceiptId(txId)
         if (receipt) receipts.push(receipt)
       }
     } else if (start || end) {
@@ -306,7 +306,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -329,7 +329,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 1000) {
         reply.send(
           Crypto.sign({
@@ -345,7 +345,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         receipts = await ReceiptDB.queryReceiptCountBetweenCycles(from, to)
       } else {
         let skip = 0
-        let limit = 100
+        const limit = 100
         if (page) {
           if (page < 1 || Number.isNaN(page)) {
             reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
@@ -397,7 +397,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
     let accounts = []
     let totalAccounts = 0
     let res
-    let { count, start, end, startCycle, endCycle, page, accountId } = _request.body
+    const { count, start, end, startCycle, endCycle, page, accountId } = _request.body
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
         reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
@@ -420,7 +420,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -446,7 +446,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 100) {
         reply.send(
           Crypto.sign({
@@ -462,9 +462,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
           reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
           return
         }
-        let offset = page
+        const offset = page
         let skip = 0
-        let limit = 10000 // query 10000 accounts
+        const limit = 10000 // query 10000 accounts
         if (offset > 0) {
           skip = (offset - 1) * 10000
         }
@@ -526,7 +526,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       reply.send(Crypto.sign({ success: false, error: result.error }))
       return
     }
-    let { count, start, end, txId, accountId, startCycle, endCycle, page } = _request.body
+    const { count, start, end, txId, accountId, startCycle, endCycle, page } = _request.body
     let transactions = []
     let totalTransactions = 0
     let res
@@ -552,7 +552,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -578,7 +578,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 100) {
         reply.send(
           Crypto.sign({
@@ -594,9 +594,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
           reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
           return
         }
-        let offset = page
+        const offset = page
         let skip = 0
-        let limit = 10000 // query 10000 transactions
+        const limit = 10000 // query 10000 transactions
         if (offset > 0) {
           skip = (offset - 1) * 10000
         }
@@ -667,7 +667,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
   )
 }
 
-const validateRequestData = (data: any, expectedDataType: any) => {
+export const validateRequestData = (data: any, expectedDataType: any): any => {
   try {
     let err = Utils.validateTypes(data, expectedDataType)
     if (err) {
@@ -689,7 +689,7 @@ const validateRequestData = (data: any, expectedDataType: any) => {
         return { success: false, error: 'Data request sender is not a subscriber' }
       }
       const subscriber = distributorSubscribers.get(data.sender)
-      if (subscriber.expirationTimestamp !== 0 && subscriber.expirationTimestamp > Date.now()) {
+      if (subscriber?.expirationTimestamp !== 0 && subscriber!.expirationTimestamp > Date.now()) {
         Logger.mainLogger.error('Subscriber subscription expired')
         return { success: false, error: 'Subscriber subscription expired' }
       }

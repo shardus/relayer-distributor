@@ -1,3 +1,5 @@
+import { join } from 'path'
+const childPath = join(__dirname, 'child')
 import { fork, ChildProcess } from 'child_process'
 
 const MAX_CLIENTS_PER_CHILD = 2
@@ -15,7 +17,7 @@ export const showAllProcesses = (): void => {
 
 const spinUpChildProcess = (clientKey: string, clientRequestData: any): void => {
   try {
-    const child = fork('./src/child-process/child.ts')
+    const child = fork(childPath)
     child.send({ ...clientRequestData.header }, clientRequestData.socket)
     childProcessMap.set(child.pid!, child)
     childClientMap.set(child, [clientKey])

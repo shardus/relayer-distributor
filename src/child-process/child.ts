@@ -8,7 +8,7 @@ process.on('message', (dataProp: any, socket: any) => {
     sendDataToAllClients(dataProp.data)
   } else {
     wss.handleUpgrade(dataProp, socket, dataProp.head, (ws: any) => {
-      const clientId = dataProp.headers['sec-websocket-key']
+      const clientId = dataProp.clientKey
       socketClientMap.set(clientId, ws)
       // Sending Client-ID to Socket Client
       ws.send(

@@ -1,6 +1,12 @@
+/**
+ * This code is only for testing purposes, it won't be included
+ * in the final build of the distributor.
+ * This code listens for incoming tx receipts, cycle data and original txs data
+ * to send to the connected clients.
+ */
+
 import { childProcessMap } from '../child-process'
 import * as socketClient from 'socket.io-client'
-import * as fs from 'fs'
 
 const data: any = []
 
@@ -27,6 +33,5 @@ function txDataHandler(newData: any): void {
 
 process.on('SIGINT', () => {
   console.log('DATA SYNC KILLED!')
-  fs.writeFileSync('receipt.json', JSON.stringify(data), 'utf8')
   process.exit(0)
 })
