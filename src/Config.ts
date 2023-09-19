@@ -1,8 +1,8 @@
+/* eslint-disable security/detect-object-injection */
 import { readFileSync } from 'fs'
 import * as Logger from './Logger'
 import * as merge from 'deepmerge'
 import * as minimist from 'minimist'
-import { type } from 'os'
 
 export interface Config {
   DISTRIBUTOR_IP: string
@@ -14,6 +14,8 @@ export interface Config {
   DISTRIBUTOR_LOGS: string
   RATE_LIMIT: number
   VERBOSE: boolean
+  DATA_LOG_DIR: string
+  FILE_STREAM_INTERVAL_MS: number
   useSerialization: boolean
   limitToSubscribersOnly: boolean
   subscribers: [] | Subscribers[]
@@ -31,6 +33,8 @@ let config: Config = {
   ARCHIVER_DB_PATH: 'archiverdb.sqlite3',
   DISTRIBUTOR_LOGS: 'distributor-logs',
   RATE_LIMIT: 100, // 100 req per second,
+  DATA_LOG_DIR: '../../../collector/data-logs', // Directory to store data log files written by archiver/collector
+  FILE_STREAM_INTERVAL_MS: 2000, // Check for new data every 2s
   VERBOSE: false,
   useSerialization: false,
   limitToSubscribersOnly: false,

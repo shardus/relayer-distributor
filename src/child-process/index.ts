@@ -61,7 +61,6 @@ const removeSocketClient = (clientId: string): void => {
       // Check if the child process has no clients, then terminate it
       if (clients.length === 0) terminateProcess(childProcess.pid!)
       return
-      // }
     }
   }
 }

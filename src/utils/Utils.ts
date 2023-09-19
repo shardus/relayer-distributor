@@ -1,4 +1,3 @@
-import * as util from 'util'
 import * as Logger from '../Logger'
 
 export async function sleep(time: number): Promise<void> {

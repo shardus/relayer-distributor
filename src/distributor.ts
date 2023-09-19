@@ -13,8 +13,6 @@ import { resolve } from 'path'
 import { registerRoutes, validateRequestData } from './api'
 import { assignChildProcessToClient, showAllProcesses } from './child-process'
 
-// Initiate fetching data from the archiver/explorer/collector
-import './sync'
 let httpServer: http.Server
 export interface DistributorInfo {
   ip: string
@@ -64,7 +62,7 @@ async function start(): Promise<void> {
   distributorInfo.publicKey = config.DISTRIBUTOR_PUBLIC_KEY
   distributorInfo.secretKey = config.DISTRIBUTOR_SECRET_KEY
 
-  // await dbstore.initializeDB(config)
+  await dbstore.initializeDB(config)
 
   // Refresh the subscribers
   refreshSubscribers()
@@ -92,12 +90,11 @@ async function start(): Promise<void> {
     const decodedData = decodeURIComponent(queryObject.data as string)
     const clientData = JSON.parse(decodedData)
 
-    const { success: isClientAuthorized } = validateRequestData(clientData, {
+    const auth = validateRequestData(clientData, {
       sender: 's',
       sign: 'o',
     })
-
-    if (isClientAuthorized) {
+    if (auth.success) {
       const clientKey = clientData.sender ?? undefined
       if (!clientKey)
         throw new Error(`No client/public key found in upgrade request from Client @ ${req.headers.host}`)
@@ -109,7 +106,7 @@ async function start(): Promise<void> {
         socket,
       })
       showAllProcesses()
-    } else console.log(`Unauthorized Client Request from ${req.headers.host}`)
+    } else console.log(`Unauthorized Client Request from ${req.headers.host}, Reason: ${auth.error}`)
   })
 
   // Register API routes

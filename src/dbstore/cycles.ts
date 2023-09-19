@@ -11,12 +11,12 @@ export interface Cycle {
   cycleMarker: StateManager.StateMetaDataTypes.CycleMarker
 }
 
-export async function insertCycle(cycle: Cycle) {
+export async function insertCycle(cycle: Cycle): Promise<void> {
   try {
     const fields = Object.keys(cycle).join(', ')
     const placeholders = Object.keys(cycle).fill('?').join(', ')
     const values = extractValues(cycle)
-    let sql = 'INSERT OR REPLACE INTO cycles (' + fields + ') VALUES (' + placeholders + ')'
+    const sql = 'INSERT OR REPLACE INTO cycles (' + fields + ') VALUES (' + placeholders + ')'
     await db.run(sql, values)
     Logger.mainLogger.debug('Successfully inserted Cycle', cycle.cycleRecord.counter, cycle.cycleMarker)
   } catch (e) {
@@ -29,7 +29,7 @@ export async function insertCycle(cycle: Cycle) {
   }
 }
 
-export async function bulkInsertCycles(cycles: Cycle[]) {
+export async function bulkInsertCycles(cycles: Cycle[]): Promise<void> {
   try {
     const fields = Object.keys(cycles[0]).join(', ')
     const placeholders = Object.keys(cycles[0]).fill('?').join(', ')
@@ -46,7 +46,7 @@ export async function bulkInsertCycles(cycles: Cycle[]) {
   }
 }
 
-export async function updateCycle(marker: string, cycle: Cycle) {
+export async function updateCycle(marker: string, cycle: Cycle): Promise<void> {
   try {
     const sql = `UPDATE cycles SET counter = $counter, cycleRecord = $cycleRecord WHERE cycleMarker = $marker `
     await db.run(sql, {
@@ -63,7 +63,7 @@ export async function updateCycle(marker: string, cycle: Cycle) {
   }
 }
 
-export async function queryCycleByMarker(marker: string) {
+export async function queryCycleByMarker(marker: string): Promise<any> {
   try {
     const sql = `SELECT * FROM cycles WHERE cycleMarker=? LIMIT 1`
     const cycle: any = await db.get(sql, [marker])
@@ -79,7 +79,7 @@ export async function queryCycleByMarker(marker: string) {
   }
 }
 
-export async function queryLatestCycleRecords(count: number) {
+export async function queryLatestCycleRecords(count: number): Promise<any> {
   try {
     const sql = `SELECT * FROM cycles ORDER BY counter DESC LIMIT ${count ? count : 100}`
     let cycleRecords: any = await db.all(sql)
@@ -99,7 +99,7 @@ export async function queryLatestCycleRecords(count: number) {
   }
 }
 
-export async function queryCycleRecordsBetween(start: number, end: number) {
+export async function queryCycleRecordsBetween(start: number, end: number): Promise<any> {
   try {
     const sql = `SELECT * FROM cycles WHERE counter BETWEEN ? AND ? ORDER BY counter ASC`
     let cycleRecords: any = await db.all(sql, [start, end])
@@ -119,7 +119,7 @@ export async function queryCycleRecordsBetween(start: number, end: number) {
   }
 }
 
-export async function queryCyleCount() {
+export async function queryCyleCount(): Promise<any> {
   let cycles
   try {
     const sql = `SELECT COUNT(*) FROM cycles`

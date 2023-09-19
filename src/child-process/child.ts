@@ -1,12 +1,14 @@
 import * as WebSocket from 'ws'
+import { join } from 'path'
+import { config } from '../Config'
+import DataLogReader from '../log-reader'
+
 const wss = new WebSocket.Server({ noServer: true })
 
 const socketClientMap = new Map<string, any>()
 
 process.on('message', (dataProp: any, socket: any) => {
-  if (dataProp.type === 'receipt' && dataProp.data) {
-    sendDataToAllClients(dataProp.data)
-  } else {
+  if (dataProp.headers) {
     wss.handleUpgrade(dataProp, socket, dataProp.head, (ws: any) => {
       const clientId = dataProp.clientKey
       socketClientMap.set(clientId, ws)
@@ -20,7 +22,6 @@ process.on('message', (dataProp: any, socket: any) => {
 
       // Listening to messages from Socket Client
       ws.on('message', (msg: any) => {
-        console.log('\nMSG RECEIVED by CHILD')
         const clientMsg = JSON.parse(msg.toString('utf8'))
         if (clientMsg.type && clientMsg.data) {
           switch (clientMsg.type) {
@@ -48,19 +49,64 @@ process.on('message', (dataProp: any, socket: any) => {
         })
       })
     })
+  } else {
+    console.info('Unexpected Message Received in Child: ', dataProp)
   }
 })
 
-const sendDataToAllClients = (data: any): void => {
+const sendDataToAllClients = ({ type, data }: any): void => {
   for (const client of socketClientMap.values()) {
     client.send(
       JSON.stringify({
-        type: 'receipt',
+        type,
         data,
       })
     )
   }
 }
+
+const registerDataReaderListeners = (reader: DataLogReader): void => {
+  reader.on(`${reader.dataName}-data`, (data: any) => {
+    try {
+      if (!data.includes('End: Number of entries:')) {
+        sendDataToAllClients({
+          type: reader.dataName,
+          data: JSON.parse(data),
+        })
+      }
+    } catch (e) {
+      console.log('Issue with data: ')
+      console.log(e)
+    }
+  })
+
+  reader.on(`${reader.dataName}-end`, (totalEntriesItReads: any, totalEntriesDefinedOnFile: any) => {
+    console.info(
+      `✔️ Finished reading ${totalEntriesItReads} entries from ${reader.dataName}-${reader.logCounter} log file having ${totalEntriesDefinedOnFile} entries.`
+    )
+  })
+
+  reader.on('error', (err: any) => {
+    console.error(`Error reading log file: ${err}`)
+  })
+}
+
+;(async (): Promise<void> => {
+  try {
+    const DATA_LOG_PATH = join(__dirname, config.DATA_LOG_DIR)
+    const cycleReader = new DataLogReader(DATA_LOG_PATH, 'CYCLE')
+    const receiptReader = new DataLogReader(DATA_LOG_PATH, 'RECEIPT')
+    const originalTxReader = new DataLogReader(DATA_LOG_PATH, 'ORIGINAL_TX')
+    await Promise.all([receiptReader.init(), cycleReader.init(), originalTxReader.init()])
+
+    registerDataReaderListeners(cycleReader)
+    registerDataReaderListeners(receiptReader)
+    registerDataReaderListeners(originalTxReader)
+  } catch (e) {
+    console.error('Error in Child Process: ', e)
+    process.exit(1)
+  }
+})()
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception in Child Process:', error)
