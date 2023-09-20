@@ -1,32 +1,18 @@
 import { join } from 'path'
 import * as url from 'url'
+import * as utils from './utils'
 import fastify, { FastifyInstance } from 'fastify'
 import fastifyCors from '@fastify/cors'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { overrideDefaultConfig, config, Subscribers } from './Config'
 import * as http from 'http'
-import * as Crypto from './Crypto'
 import * as dbstore from './dbstore'
 import * as Logger from './Logger'
-import { readFileSync } from 'fs'
-import { resolve } from 'path'
+
 import { registerRoutes, validateRequestData } from './api'
 import { assignChildProcessToClient, showAllProcesses } from './child-process'
 
 let httpServer: http.Server
-export interface DistributorInfo {
-  ip: string
-  port: number
-  publicKey: string
-  secretKey?: string
-}
-
-const distributorInfo: DistributorInfo = {
-  ip: '',
-  port: -1,
-  publicKey: '',
-  secretKey: '',
-}
 
 export const distributorSubscribers: Map<string, Subscribers> = new Map()
 
@@ -34,7 +20,6 @@ export const distributorSubscribers: Map<string, Subscribers> = new Map()
 const file = join(process.cwd(), 'distributor-config.json')
 const env = process.env
 const args = process.argv
-let logDir: string
 
 export let socketServer: SocketIO.Server
 
@@ -43,24 +28,8 @@ async function start(): Promise<void> {
 
   // Set crypto hash keys from config
   const hashKey = config.DISTRIBUTOR_HASH_KEY
-  Crypto.setCryptoHashKey(hashKey)
-
-  let logsConfig
-  try {
-    logsConfig = JSON.parse(readFileSync(resolve(__dirname, '../distributor-log.json'), 'utf8'))
-  } catch (err) {
-    console.log('Failed to parse distributor log file:', err)
-  }
-  logDir = `${config.DISTRIBUTOR_LOGS}`
-  const baseDir = '.'
-  logsConfig.dir = logDir
-  Logger.initLogger(baseDir, logsConfig)
-
-  // Set distributor info from config
-  distributorInfo.ip = config.DISTRIBUTOR_IP
-  distributorInfo.port = config.DISTRIBUTOR_PORT
-  distributorInfo.publicKey = config.DISTRIBUTOR_PUBLIC_KEY
-  distributorInfo.secretKey = config.DISTRIBUTOR_SECRET_KEY
+  utils.setHashKey(hashKey)
+  utils.initLogger()
 
   await dbstore.initializeDB(config)
 
@@ -128,16 +97,6 @@ async function start(): Promise<void> {
   })
 }
 
-export function getDistributorInfo(): DistributorInfo {
-  const sanitizedDistributorInfo = { ...distributorInfo }
-  delete sanitizedDistributorInfo.secretKey
-  return sanitizedDistributorInfo
-}
-
-export function getDistributorSecretKey(): string {
-  return distributorInfo.secretKey!
-}
-
 const addSigListeners = (): void => {
   process.on('SIGUSR1', async () => {
     Logger.mainLogger.debug('DETECTED SIGUSR1 SIGNAL')
@@ -150,7 +109,7 @@ const addSigListeners = (): void => {
   process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception in Distributor: ', error)
   })
-  Logger.mainLogger.debug('Registerd signal listeners.')
+  Logger.mainLogger.debug('Registered signal listeners.')
 }
 
 const refreshSubscribers = (): void => {

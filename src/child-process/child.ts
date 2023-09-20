@@ -1,7 +1,12 @@
 import * as WebSocket from 'ws'
+import * as Crypto from '../utils/Crypto'
 import { join } from 'path'
-import { config } from '../Config'
+import { config, overrideDefaultConfig } from '../Config'
 import DataLogReader from '../log-reader'
+
+const FILE = join(process.cwd(), 'distributor-config.json')
+overrideDefaultConfig(FILE, process.env, process.argv)
+Crypto.setCryptoHashKey(config.DISTRIBUTOR_HASH_KEY)
 
 const wss = new WebSocket.Server({ noServer: true })
 
@@ -54,28 +59,43 @@ process.on('message', (dataProp: any, socket: any) => {
   }
 })
 
-const sendDataToAllClients = ({ type, data }: any): void => {
+const sendDataToAllClients = ({ signedData }: any): void => {
   for (const client of socketClientMap.values()) {
     client.send(
       JSON.stringify({
-        type,
-        data,
+        ...signedData,
       })
     )
   }
 }
 
 const registerDataReaderListeners = (reader: DataLogReader): void => {
-  reader.on(`${reader.dataName}-data`, (data: any) => {
+  reader.on(`${reader.dataName}-data`, (logData: any) => {
     try {
-      if (!data.includes('End: Number of entries:')) {
+      if (!logData.includes('End: Number of entries:')) {
+        const data: {
+          cycle?: any
+          receipt?: any
+          originalTx?: any
+        } = {}
+        switch (reader.dataName) {
+          case 'CYCLE':
+            data.cycle = JSON.parse(logData)
+            break
+          case 'RECEIPT':
+            data.receipt = JSON.parse(logData)
+            break
+          case 'ORIGINAL_TX':
+            data.originalTx = JSON.parse(logData)
+            break
+        }
         sendDataToAllClients({
-          type: reader.dataName,
-          data: JSON.parse(data),
+          signedData: Crypto.sign(data, config.DISTRIBUTOR_SECRET_KEY, config.DISTRIBUTOR_PUBLIC_KEY),
         })
       }
     } catch (e) {
-      console.log('Issue with data: ')
+      console.log('Issue with Log-reader data: ')
+      console.log('->> LOG DATA: ', logData)
       console.log(e)
     }
   })
