@@ -16,6 +16,10 @@ process.on('message', (dataProp: any, socket: any) => {
   if (dataProp.headers) {
     wss.handleUpgrade(dataProp, socket, dataProp.head, (ws: any) => {
       const clientId = dataProp.clientKey
+      if (socketClientMap.has(clientId)) {
+        console.log(`❌ Closing previous connection with Client (${clientId})`)
+        socketClientMap.get(clientId).close()
+      }
       socketClientMap.set(clientId, ws)
       // Sending Client-ID to Socket Client
       ws.send(
@@ -113,10 +117,12 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
 
 ;(async (): Promise<void> => {
   try {
+    console.log('DATA_LOG_DIR: ', config.DATA_LOG_DIR)
     const DATA_LOG_PATH = join(__dirname, config.DATA_LOG_DIR)
-    const cycleReader = new DataLogReader(DATA_LOG_PATH, 'CYCLE')
-    const receiptReader = new DataLogReader(DATA_LOG_PATH, 'RECEIPT')
-    const originalTxReader = new DataLogReader(DATA_LOG_PATH, 'ORIGINAL_TX')
+    console.log('DATA_LOG_PATH: ', DATA_LOG_PATH)
+    const cycleReader = new DataLogReader(DATA_LOG_PATH, 'cycle')
+    const receiptReader = new DataLogReader(DATA_LOG_PATH, 'receipt')
+    const originalTxReader = new DataLogReader(DATA_LOG_PATH, 'originalTx')
     await Promise.all([receiptReader.init(), cycleReader.init(), originalTxReader.init()])
 
     registerDataReaderListeners(cycleReader)

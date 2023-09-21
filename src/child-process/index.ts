@@ -4,8 +4,11 @@ import { fork, ChildProcess } from 'child_process'
 
 const MAX_CLIENTS_PER_CHILD = 2
 
-export const childProcessMap = new Map<number, ChildProcess>()
+type childProcessId = number
+
+export const childProcessMap = new Map<childProcessId, ChildProcess>()
 export const childClientMap = new Map<ChildProcess, string[]>()
+export const socketClientMap = new Map<string, childProcessId>()
 
 export const showAllProcesses = (): void => {
   const clients: any = []
@@ -21,6 +24,7 @@ const spinUpChildProcess = (clientKey: string, clientRequestData: any): void => 
     child.send({ ...clientRequestData.header }, clientRequestData.socket)
     childProcessMap.set(child.pid!, child)
     childClientMap.set(child, [clientKey])
+    socketClientMap.set(clientKey, child.pid!)
     registerChildMessageListener(child)
   } catch (e) {
     throw new Error(`Error in spinUpChildProcess(): ${e}`)
@@ -31,6 +35,13 @@ export const assignChildProcessToClient = (clientKey: string, clientRequestData:
   const numberofActiveChildProcesses = childProcessMap.size
   if (numberofActiveChildProcesses === 0) {
     spinUpChildProcess(clientKey, clientRequestData)
+    return
+  }
+
+  const childProcessId = socketClientMap.get(clientKey)
+  if (childProcessId) {
+    const childProcess = childProcessMap.get(childProcessId)
+    childProcess?.send({ ...clientRequestData.header }, clientRequestData.socket)
     return
   }
 
@@ -51,6 +62,7 @@ export const assignChildProcessToClient = (clientKey: string, clientRequestData:
 }
 
 const removeSocketClient = (clientId: string): void => {
+  socketClientMap.delete(clientId)
   for (const [childProcess, clients] of childClientMap.entries()) {
     const index = clients.findIndex((id) => id === clientId)
     if (index > -1) {
