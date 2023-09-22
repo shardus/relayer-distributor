@@ -4,17 +4,17 @@ import * as utils from './utils'
 import fastify, { FastifyInstance } from 'fastify'
 import fastifyCors from '@fastify/cors'
 import fastifyRateLimit from '@fastify/rate-limit'
-import { overrideDefaultConfig, config, Subscribers } from './Config'
+import { overrideDefaultConfig, config, Subscriber } from './Config'
 import * as http from 'http'
 import * as dbstore from './dbstore'
 import * as Logger from './Logger'
 
 import { registerRoutes, validateRequestData } from './api'
-import { assignChildProcessToClient, showAllProcesses } from './child-process'
+import { assignChildProcessToClient, showAllProcesses, getChildProcessForClient } from './child-process'
 
 let httpServer: http.Server
 
-export const distributorSubscribers: Map<string, Subscribers> = new Map()
+export const distributorSubscribers: Map<string, Subscriber> = new Map()
 
 // Override default config params from config file, env vars, and cli args
 const file = join(process.cwd(), 'distributor-config.json')
@@ -114,11 +114,23 @@ const addSigListeners = (): void => {
 }
 
 const refreshSubscribers = (): void => {
-  const subscribers: Subscribers[] = config.subscribers
+  const subscribers: Subscriber[] = config.subscribers
   for (let i = 0; i < subscribers.length; i++) {
     distributorSubscribers.set(subscribers[i].publicKey, subscribers[i])
   }
   Logger.mainLogger.debug('Subscribers refreshed', distributorSubscribers)
+  setInterval(() => {
+    console.log('Checking for expired subscribers...')
+    for (let i = 0; i < subscribers.length; i++) {
+      // Subscribers with expirationTimestamp of 0 are permanent subscribers
+      if (subscribers[i].expirationTimestamp !== 0 && subscribers[i].expirationTimestamp < Date.now()) {
+        Logger.mainLogger.debug(`❌ Removing Expired Subscriber: ${subscribers[i].publicKey}`)
+        const childProcess = getChildProcessForClient(subscribers[i].publicKey)
+        childProcess?.send({ type: 'remove_subscriber', data: subscribers[i].publicKey })
+        subscribers.splice(i, 1)
+      }
+    }
+  }, 60_000)
 }
 
 start()

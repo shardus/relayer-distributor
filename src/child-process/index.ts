@@ -83,10 +83,22 @@ const registerChildMessageListener = (child: ChildProcess): void => {
       console.log('Client Connection Termination Event Received, ID: ', data)
       removeSocketClient(data)
     }
+    if (type === 'child_close') {
+      console.log('Terminating Child Process due to error: ', data.err)
+      terminateProcess(data.pid)
+    }
   })
 }
 
-const getChildProcess = (pid: number): ChildProcess | undefined => {
+export const getChildProcessForClient = (clientId: string): ChildProcess | undefined => {
+  const childProcessId = socketClientMap.get(clientId)
+  if (!childProcessId) throw new Error(`Child process associated with Client: ${clientId} not found.`)
+  const childProcess = childProcessMap.get(childProcessId)
+  if (!childProcess) throw new Error(`Child process with PID: ${childProcessId} not found.`)
+  return childProcess
+}
+
+export const getChildProcess = (pid: number): ChildProcess | undefined => {
   const child = childProcessMap.get(pid)
   if (!child) throw new Error(`Child process with PID: ${pid} not found.`)
   return child

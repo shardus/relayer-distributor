@@ -18,7 +18,7 @@ export interface Config {
   FILE_STREAM_INTERVAL_MS: number
   useSerialization: boolean
   limitToSubscribersOnly: boolean
-  subscribers: [] | Subscribers[]
+  subscribers: [] | Subscriber[]
 }
 
 let config: Config = {
@@ -41,7 +41,7 @@ let config: Config = {
   subscribers: [],
 }
 
-export interface Subscribers {
+export interface Subscriber {
   publicKey: string
   expirationTimestamp: number
   subscriptionType: SubscriptionType

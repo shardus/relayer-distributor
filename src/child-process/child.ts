@@ -56,6 +56,7 @@ process.on('message', (dataProp: any, socket: any) => {
           console.log(`❌ Closing previous connection with Client (${clientId})`)
           return
         }
+        socketClientMap.delete(clientId)
         console.log(`❌ Connection with Client (${clientId}) Closed.`)
         process.send!({
           type: 'client_close',
@@ -64,7 +65,11 @@ process.on('message', (dataProp: any, socket: any) => {
       })
     })
   } else {
-    console.info('Unexpected Message Received in Child: ', dataProp)
+    if (dataProp.type === 'remove_subscriber') {
+      const clientId = dataProp.data
+      socketClientMap.get(clientId).close()
+      console.log(`❌ Expired Subscription -> Client (${clientId}) Removed.`)
+    } else console.info('Unexpected Message Received in Child: ', dataProp)
   }
 })
 
@@ -122,20 +127,28 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
 
 ;(async (): Promise<void> => {
   try {
-    console.log('DATA_LOG_DIR: ', config.DATA_LOG_DIR)
     const DATA_LOG_PATH = join(__dirname, config.DATA_LOG_DIR)
-    console.log('DATA_LOG_PATH: ', DATA_LOG_PATH)
     const cycleReader = new DataLogReader(DATA_LOG_PATH, 'cycle')
     const receiptReader = new DataLogReader(DATA_LOG_PATH, 'receipt')
     const originalTxReader = new DataLogReader(DATA_LOG_PATH, 'originalTx')
     await Promise.all([receiptReader.init(), cycleReader.init(), originalTxReader.init()])
-
     registerDataReaderListeners(cycleReader)
     registerDataReaderListeners(receiptReader)
     registerDataReaderListeners(originalTxReader)
   } catch (e) {
-    console.error('Error in Child Process: ', e)
-    process.exit(1)
+    if (e.code === 'ENOENT') {
+      console.error(
+        '❌ Path to the data-logs directory does not exist. Please check the path in the config file.\n Current Path: ',
+        join(__dirname, config.DATA_LOG_DIR)
+      )
+      // Terminate the Child Process
+      process.send!({
+        type: 'child_close',
+        data: { err: 'Invalid Path to the data-logs directory', pid: process.pid },
+      })
+    } else {
+      console.error('Error in Child Process: ', e.message, e.code)
+    }
   }
 })()
 
