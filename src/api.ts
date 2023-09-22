@@ -693,6 +693,26 @@ export const validateRequestData = (data: any, expectedDataType: any): any => {
         Logger.mainLogger.error('Subscriber subscription expired')
         return { success: false, error: 'Subscriber subscription expired' }
       }
+      if (expectedDataType.collectorInfo) {
+        err = Utils.validateTypes(data.collectorInfo, { subscriptionType: 's', timestamp: 'n' })
+        if (err) {
+          Logger.mainLogger.error('Invalid collectorInfo ', err)
+          return { success: false, error: 'Invalid collectorInfo ' + err }
+        }
+        if (data.collectorInfo.subscriptionType !== subscriber.subscriptionType) {
+          Logger.mainLogger.error('Invalid subscriptionType')
+          return { success: false, error: 'Invalid subscriptionType' }
+        }
+        // Check if the timestamp is less than 30 seconds of the current time
+        const ACCEPTABLE_TIMESTAMP_DIFF = 30000
+        if (
+          data.collectorInfo.timestamp !== 0 &&
+          Date.now() - data.collectorInfo.timestamp > ACCEPTABLE_TIMESTAMP_DIFF
+        ) {
+          Logger.mainLogger.error('Invalid timestamp')
+          return { success: false, error: 'Invalid timestamp' }
+        }
+      }
     }
     if (!Crypto.verify(data)) {
       Logger.mainLogger.error('Invalid signature', data)

@@ -60,6 +60,7 @@ async function start(): Promise<void> {
     const clientData = JSON.parse(decodedData)
 
     const auth = validateRequestData(clientData, {
+      collectorInfo: 'o',
       sender: 's',
       sign: 'o',
     })

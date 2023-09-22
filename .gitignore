@@ -7,3 +7,5 @@ distributor-logs/
 archiverdb.sqlite3
 archiverdb.sqlite3-shm
 archiverdb.sqlite3-wal
+
+distributor.log

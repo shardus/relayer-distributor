@@ -35,8 +35,15 @@ class DataLogReader extends EventEmitter {
       if (activeLogNumber) {
         this.logCounter = activeLogNumber
       }
-      console.info(`Starting at ${this.dataName}-log${this.logCounter}.txt`)
-      this.readLogFile()
+
+      // Read the log file and skip the entries that have already been recorded
+      const logFile = path.join(this.logDir, `${this.dataName}-log${this.logCounter}.txt`)
+      if (!(await this.fileExists(logFile))) {
+        throw new Error(`Log file ${logFile} does not exist`)
+      }
+      const stat = fs.statSync(logFile)
+      console.log(`Starting at ${this.dataName}-log${this.logCounter}.txt with size ${stat.size}`)
+      this.readLogFile(stat.size)
     }
 
     // listen to the active log file
@@ -60,12 +67,12 @@ class DataLogReader extends EventEmitter {
     })
   }
 
-  async readLogFile(): Promise<void> {
+  async readLogFile(startSize: number = 0): Promise<void> {
     const logFile = path.join(this.logDir, `${this.dataName}-log${this.logCounter}.txt`)
     if (!(await this.fileExists(logFile))) {
       throw new Error(`Log file ${logFile} does not exist`)
     }
-    let currentSize = 0
+    let currentSize = startSize
     let totalNumberOfEntries = 0
 
     const fileStreamer = setInterval(() => {

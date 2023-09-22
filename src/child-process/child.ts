@@ -8,6 +8,8 @@ const FILE = join(process.cwd(), 'distributor-config.json')
 overrideDefaultConfig(FILE, process.env, process.argv)
 Crypto.setCryptoHashKey(config.DISTRIBUTOR_HASH_KEY)
 
+const NEW_CONNECTION_CODE = 3000
+
 const wss = new WebSocket.Server({ noServer: true })
 
 const socketClientMap = new Map<string, any>()
@@ -17,8 +19,7 @@ process.on('message', (dataProp: any, socket: any) => {
     wss.handleUpgrade(dataProp, socket, dataProp.head, (ws: any) => {
       const clientId = dataProp.clientKey
       if (socketClientMap.has(clientId)) {
-        console.log(`❌ Closing previous connection with Client (${clientId})`)
-        socketClientMap.get(clientId).close()
+        socketClientMap.get(clientId).close(NEW_CONNECTION_CODE, 'New Connection Established')
       }
       socketClientMap.set(clientId, ws)
       // Sending Client-ID to Socket Client
@@ -50,7 +51,11 @@ process.on('message', (dataProp: any, socket: any) => {
         } else console.log('Basic Client Msg: ', msg.toString('utf8'))
       })
 
-      ws.on('close', () => {
+      ws.on('close', (code) => {
+        if (code === NEW_CONNECTION_CODE) {
+          console.log(`❌ Closing previous connection with Client (${clientId})`)
+          return
+        }
         console.log(`❌ Connection with Client (${clientId}) Closed.`)
         process.send!({
           type: 'client_close',
@@ -83,13 +88,13 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
           originalTx?: any
         } = {}
         switch (reader.dataName) {
-          case 'CYCLE':
+          case 'cycle':
             data.cycle = JSON.parse(logData)
             break
-          case 'RECEIPT':
+          case 'receipt':
             data.receipt = JSON.parse(logData)
             break
-          case 'ORIGINAL_TX':
+          case 'originalTx':
             data.originalTx = JSON.parse(logData)
             break
         }
