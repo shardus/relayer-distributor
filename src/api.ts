@@ -169,7 +169,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      const count = to - from
+      let count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -179,7 +179,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      originalTxs = await OriginalTxDB.queryOriginalTxsData(from, count)
+      originalTxs = await OriginalTxDB.queryOriginalTxsData(from, count++)
     } else if (startCycle || endCycle) {
       const from = startCycle ? startCycle : 0
       const to = endCycle ? endCycle : from + 100
@@ -306,7 +306,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      const count = to - from
+      let count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -316,7 +316,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      receipts = await ReceiptDB.queryReceipts(from, count)
+      receipts = await ReceiptDB.queryReceipts(from, count++)
     } else if (startCycle || endCycle) {
       const from = startCycle ? startCycle : 0
       const to = endCycle ? endCycle : from + 100
@@ -420,7 +420,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      const count = to - from
+      let count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -430,7 +430,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      accounts = await AccountDB.queryAccounts(from, count)
+      accounts = await AccountDB.queryAccounts(from, count++)
       res = Crypto.sign({
         accounts,
       })
@@ -462,12 +462,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
           reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
           return
         }
-        const offset = page
-        let skip = 0
+        let skip = page - 1
         const limit = 10000 // query 10000 accounts
-        if (offset > 0) {
-          skip = (offset - 1) * 10000
-        }
+        if (skip > 0) skip = skip * limit
         accounts = await AccountDB.queryAccountsBetweenCycles(skip, limit, from, to)
         res = Crypto.sign({
           accounts,
@@ -552,7 +549,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      const count = to - from
+      let count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -562,7 +559,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      transactions = await TransactionDB.queryTransactions(from, count)
+      transactions = await TransactionDB.queryTransactions(from, count++)
       res = Crypto.sign({
         transactions,
       })
@@ -594,12 +591,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
           reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
           return
         }
-        const offset = page
-        let skip = 0
+        let skip = page - 1
         const limit = 10000 // query 10000 transactions
-        if (offset > 0) {
-          skip = (offset - 1) * 10000
-        }
+        if (skip > 0) skip = skip * limit
         transactions = await TransactionDB.queryTransactionsBetweenCycles(skip, limit, from, to)
         res = Crypto.sign({
           transactions,

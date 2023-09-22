@@ -36,7 +36,7 @@ let config: Config = {
   DATA_LOG_DIR: '../../../collector/data-logs', // Directory to store data log files written by archiver/collector
   FILE_STREAM_INTERVAL_MS: 2000, // Check for new data every 2s
   VERBOSE: false,
-  useSerialization: false,
+  useSerialization: true,
   limitToSubscribersOnly: false,
   subscribers: [],
 }
