@@ -10,6 +10,7 @@ import * as EventEmitter from 'events'
 import * as readline from 'readline'
 
 import { config } from '../Config'
+import { sleep } from '../utils/Utils'
 
 class DataLogReader extends EventEmitter {
   activeLogFileName: string
@@ -42,8 +43,43 @@ class DataLogReader extends EventEmitter {
         throw new Error(`Log file ${logFile} does not exist`)
       }
       const stat = fs.statSync(logFile)
-      console.log(`Starting at ${this.dataName}-log${this.logCounter}.txt with size ${stat.size}`)
-      this.readLogFile(stat.size)
+      let startEntries = 0
+      let completeReading = false
+      let foundEndNumberofEntriesLine = false
+      const stream = fs.createReadStream(logFile, {
+        encoding: 'utf8',
+        start: 0,
+        end: stat.size,
+      })
+      const rl = readline.createInterface({
+        input: stream,
+      })
+      rl.on('line', (data) => {
+        // console.log(data)
+        try {
+          // if the data contains a line with "End: Number of entries: ", then we know that the file has been rotated.
+          if (data.includes('End: Number of entries: ')) {
+            foundEndNumberofEntriesLine = true
+          } else {
+            const parse = JSON.parse(data)
+            startEntries++
+          }
+          // console.log(this.dataName, 'startEntries', startEntries)
+        } catch (e) {
+          // console.log('data is not complete!')
+        }
+      })
+      stream.on('end', () => {
+        console.log('Finished reading the file.')
+        if (!foundEndNumberofEntriesLine) {
+          console.log(
+            `Starting at ${this.dataName}-log${this.logCounter}.txt with size ${stat.size} and ${startEntries} entries`
+          )
+          this.readLogFile(stat.size, startEntries)
+        }
+        rl.close()
+        stream.close()
+      })
     }
 
     // listen to the active log file
@@ -67,13 +103,13 @@ class DataLogReader extends EventEmitter {
     })
   }
 
-  async readLogFile(startSize: number = 0): Promise<void> {
+  async readLogFile(startSize: number = 0, startEntries = 0): Promise<void> {
     const logFile = path.join(this.logDir, `${this.dataName}-log${this.logCounter}.txt`)
     if (!(await this.fileExists(logFile))) {
       throw new Error(`Log file ${logFile} does not exist`)
     }
     let currentSize = startSize
-    let totalNumberOfEntries = 0
+    let totalNumberOfEntries = startEntries
 
     const fileStreamer = setInterval(() => {
       fs.stat(logFile, (err, stats) => {
@@ -94,25 +130,41 @@ class DataLogReader extends EventEmitter {
           })
           // read the stream line-by-line
           rl.on('line', (data) => {
-            totalNumberOfEntries += 1
-            this.emit(`${this.dataName}-data`, data)
-
-            // if the data contains a line with "End: Number of entries: ", then we know that the file has been rotated.
-            if (data.includes('End: Number of entries: ')) {
-              const entryCount = parseInt(data.split(':').slice(-1)[0].trim())
-              if (isNaN(entryCount)) {
-                console.error(
-                  'Error: File has been rotated but the last line does not contain the total number of entries'
-                )
+            try {
+              // if the data contains a line with "End: Number of entries: ", then we know that the file has been rotated.
+              if (data.includes('End: Number of entries: ')) {
+                const entryCount = parseInt(data.split(':').slice(-1)[0].trim())
+                if (isNaN(entryCount)) {
+                  console.error(
+                    'Error: File has been rotated but the last line does not contain the total number of entries'
+                  )
+                }
+                if (totalNumberOfEntries !== entryCount)
+                  console.log(
+                    'Total number of entries does not not match with the entry Count.',
+                    totalNumberOfEntries,
+                    entryCount
+                  )
+                this.emit(`${this.dataName}-end`, totalNumberOfEntries, entryCount)
+                // End the interval
+                clearInterval(fileStreamer)
+              } else {
+                const parse = JSON.parse(data)
+                totalNumberOfEntries += 1
+                // console.log(`${this.dataName}-data`, data)
+                this.emit(`${this.dataName}-data`, parse)
               }
-              this.emit(`${this.dataName}-end`, (totalNumberOfEntries -= 1), entryCount)
-              // End the interval
-              clearInterval(fileStreamer)
+            } catch (e) {
+              // console.log('data is not complete!')
             }
           })
-
           rl.on('error', (err) => {
             console.error('Error occurred in File Streamer', logFile, err)
+          })
+          stream.on('end', () => {
+            // End of line
+            rl.close()
+            stream.close()
           })
         }
       })

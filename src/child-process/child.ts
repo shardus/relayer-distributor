@@ -86,27 +86,25 @@ const sendDataToAllClients = ({ signedData }: any): void => {
 const registerDataReaderListeners = (reader: DataLogReader): void => {
   reader.on(`${reader.dataName}-data`, (logData: any) => {
     try {
-      if (!logData.includes('End: Number of entries:')) {
-        const data: {
-          cycle?: any
-          receipt?: any
-          originalTx?: any
-        } = {}
-        switch (reader.dataName) {
-          case 'cycle':
-            data.cycle = JSON.parse(logData)
-            break
-          case 'receipt':
-            data.receipt = JSON.parse(logData)
-            break
-          case 'originalTx':
-            data.originalTx = JSON.parse(logData)
-            break
-        }
-        sendDataToAllClients({
-          signedData: Crypto.sign(data, config.DISTRIBUTOR_SECRET_KEY, config.DISTRIBUTOR_PUBLIC_KEY),
-        })
+      const data: {
+        cycle?: any
+        receipt?: any
+        originalTx?: any
+      } = {}
+      switch (reader.dataName) {
+        case 'cycle':
+          data.cycle = logData
+          break
+        case 'receipt':
+          data.receipt = logData
+          break
+        case 'originalTx':
+          data.originalTx = logData
+          break
       }
+      sendDataToAllClients({
+        signedData: Crypto.sign(data, config.DISTRIBUTOR_SECRET_KEY, config.DISTRIBUTOR_PUBLIC_KEY),
+      })
     } catch (e) {
       console.log('Issue with Log-reader data: ')
       console.log('->> LOG DATA: ', logData)

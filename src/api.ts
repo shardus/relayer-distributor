@@ -179,7 +179,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      originalTxs = await OriginalTxDB.queryOriginalTxsData(from, count++)
+      originalTxs = await OriginalTxDB.queryOriginalTxsData(from, count + 1)
     } else if (startCycle || endCycle) {
       const from = startCycle ? startCycle : 0
       const to = endCycle ? endCycle : from + 100
@@ -316,7 +316,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      receipts = await ReceiptDB.queryReceipts(from, count++)
+      receipts = await ReceiptDB.queryReceipts(from, count + 1)
     } else if (startCycle || endCycle) {
       const from = startCycle ? startCycle : 0
       const to = endCycle ? endCycle : from + 100
@@ -430,7 +430,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      accounts = await AccountDB.queryAccounts(from, count++)
+      accounts = await AccountDB.queryAccounts(from, count + 1)
       res = Crypto.sign({
         accounts,
       })
@@ -559,7 +559,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      transactions = await TransactionDB.queryTransactions(from, count++)
+      transactions = await TransactionDB.queryTransactions(from, count + 1)
       res = Crypto.sign({
         transactions,
       })
