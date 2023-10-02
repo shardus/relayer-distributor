@@ -1,8 +1,9 @@
 import { join } from 'path'
+import { config } from '../Config'
 const childPath = join(__dirname, 'child')
 import { fork, ChildProcess } from 'child_process'
 
-const MAX_CLIENTS_PER_CHILD = 2
+const { MAX_CLIENTS_PER_CHILD } = config
 
 type childProcessId = number
 

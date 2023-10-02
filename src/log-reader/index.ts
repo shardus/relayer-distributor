@@ -10,8 +10,6 @@ import * as EventEmitter from 'events'
 import * as readline from 'readline'
 
 import { config } from '../Config'
-import { sleep } from '../utils/Utils'
-
 class DataLogReader extends EventEmitter {
   activeLogFileName: string
   logCounter = 1
@@ -44,7 +42,6 @@ class DataLogReader extends EventEmitter {
       }
       const stat = fs.statSync(logFile)
       let startEntries = 0
-      let completeReading = false
       let foundEndNumberofEntriesLine = false
       const stream = fs.createReadStream(logFile, {
         encoding: 'utf8',
