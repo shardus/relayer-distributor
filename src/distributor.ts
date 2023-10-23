@@ -34,7 +34,7 @@ async function start(): Promise<void> {
   await dbstore.initializeDB(config)
 
   // Refresh the subscribers
-  refreshSubscribers()
+  if (config.limitToSubscribersOnly) refreshSubscribers()
 
   const serverFactory = (handler): any => {
     httpServer = http.createServer((req, res) => {
@@ -105,7 +105,7 @@ const addSigListeners = (): void => {
     overrideDefaultConfig(file, env, args)
     Logger.mainLogger.debug('Config reloaded', config)
     // Refresh the subscribers
-    refreshSubscribers()
+    if (config.limitToSubscribersOnly) refreshSubscribers()
   })
   process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception in Distributor: ', error)
