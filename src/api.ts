@@ -306,7 +306,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -420,7 +420,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -549,7 +549,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
@@ -661,7 +661,13 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
   )
 }
 
-export const validateRequestData = (data: any, expectedDataType: any): any => {
+export const validateRequestData = (
+  data: any,
+  expectedDataType: any
+): {
+  success: boolean
+  error?: string
+} => {
   try {
     let err = Utils.validateTypes(data, expectedDataType)
     if (err) {
