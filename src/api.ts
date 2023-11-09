@@ -109,7 +109,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       return
     }
     const { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
-    let originalTxs: any = []
+    let originalTxs: unknown = []
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
         reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
@@ -169,7 +169,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      let count = to - from
+      const count = to - from
       if (count > 10000) {
         reply.send(
           Crypto.sign({
