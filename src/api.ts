@@ -14,6 +14,55 @@ import { distributorSubscribers } from './distributor'
 
 const TXID_LENGTH = 64
 
+//Types and interfaces for request body
+interface RequestBody {
+  count: number
+  start: number
+  end: number
+  startCycle?: number
+  endCycle?: number
+  type?: string
+  page?: number
+  txId?: string
+  txIdList?: string
+  sender?: string
+  sign: Signature
+  collectorInfo?: {
+    subscriptionType: string;
+    timestamp: number;
+  }
+}
+
+export enum TransactionType {
+  Receipt = 0, // EVM Receipt
+  NodeRewardReceipt = 1,
+  StakeReceipt = 2,
+  UnstakeReceipt = 3,
+  EVM_Internal = 4,
+  ERC_20 = 5,
+  ERC_721 = 6,
+  ERC_1155 = 7,
+  InternalTxReceipt = 8,
+}
+
+export interface OriginalTxData {
+  txId: string
+  timestamp: number
+  cycle: number
+  originalTxData: OriginalTxData | OriginalTxData2
+  sign: {
+    owner: string
+    sig: string
+  }
+}
+export interface OriginalTxData2 {
+  txId: string
+  txHash: string
+  timestamp: number
+  cycle: number
+  transactionType: TransactionType
+}
+
 export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, ServerResponse>): void {
   type CycleInfoRequest = FastifyRequest<{
     Body: { start: number; end: number; count: number; sender: string; sign: Signature }
@@ -109,7 +158,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       return
     }
     const { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
-    let originalTxs: unknown = []
+    let originalTxs: Array<OriginalTxData|OriginalTxData2>|number = []
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
         reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
@@ -119,7 +168,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
         return
       }
-      originalTxs = await OriginalTxDB.queryLatestOriginalTxs(count)
+      originalTxs = [await OriginalTxDB.queryLatestOriginalTxs(count)]
     } else if (txId) {
       if (txId.length !== TXID_LENGTH) {
         reply.send(
@@ -130,7 +179,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      originalTxs = await OriginalTxDB.queryOriginalTxDataByTxId(txId)
+      originalTxs = [await OriginalTxDB.queryOriginalTxDataByTxId(txId)]
     } else if (txIdList) {
       let txIdListArr: string[] = []
       try {
@@ -246,7 +295,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       return
     }
     const { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
-    let receipts: any = []
+    let receipts: ReceiptDB.Receipt[] = []
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
         reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
@@ -291,7 +340,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
           )
           return
         }
-        const receipt: any = await ReceiptDB.queryReceiptByReceiptId(txId)
+        const receipt: ReceiptDB.Receipt = await ReceiptDB.queryReceiptByReceiptId(txId)
         if (receipt) receipts.push(receipt)
       }
     } else if (start || end) {
@@ -624,7 +673,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
   })
 
   server.post('/totalData', async (_request, reply) => {
-    const requestData = _request.body
+    const requestData = _request.body as RequestBody
     const result = validateRequestData(requestData, {
       sender: 's',
       sign: 'o',
@@ -662,8 +711,10 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
 }
 
 export const validateRequestData = (
-  data: any,
-  expectedDataType: any
+  data: RequestBody,
+  expectedDataType: {
+    [key: string]: 'n?' | 's?' | 'o' | 's' 
+  }
 ): {
   success: boolean
   error?: string
