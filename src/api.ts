@@ -28,8 +28,8 @@ interface RequestBody {
   sender?: string
   sign: Signature
   collectorInfo?: {
-    subscriptionType: string;
-    timestamp: number;
+    subscriptionType: string
+    timestamp: number
   }
 }
 
@@ -158,7 +158,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       return
     }
     const { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
-    let originalTxs: Array<OriginalTxData|OriginalTxData2>|number = []
+    let originalTxs: Array<OriginalTxData | OriginalTxData2> | number = []
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
         reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
@@ -713,7 +713,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
 export const validateRequestData = (
   data: RequestBody,
   expectedDataType: {
-    [key: string]: 'n?' | 's?' | 'o' | 's' 
+    [key: string]: 'n?' | 's?' | 'o' | 's'
   }
 ): {
   success: boolean
