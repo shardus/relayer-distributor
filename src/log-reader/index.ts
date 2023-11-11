@@ -52,7 +52,7 @@ class DataLogReader extends EventEmitter {
         input: stream,
       })
       rl.on('line', (data) => {
-        // console.log(data)
+        /* prettier-ignore */ if (config.VERBOSE) console.log(data)
         try {
           // if the data contains a line with "End: Number of entries: ", then we know that the file has been rotated.
           if (data.includes('End: Number of entries: ')) {
@@ -62,9 +62,9 @@ class DataLogReader extends EventEmitter {
             // const parse = JSON.parse(data)
             startEntries++
           }
-          // console.log(this.dataName, 'startEntries', startEntries)
+          /* prettier-ignore */ if (config.VERBOSE) console.log(this.dataName, 'startEntries', startEntries)
         } catch (e) {
-          // console.log('data is not complete!')
+          /* prettier-ignore */ if (config.VERBOSE) console.log('data is not complete!')
         }
       })
       stream.on('end', () => {
@@ -149,11 +149,11 @@ class DataLogReader extends EventEmitter {
               } else {
                 const parse = JSON.parse(data)
                 totalNumberOfEntries += 1
-                // console.log(`${this.dataName}-data`, data)
+                /* prettier-ignore */ if (config.VERBOSE) console.log(`${this.dataName}-data`, data)
                 this.emit(`${this.dataName}-data`, parse)
               }
             } catch (e) {
-              // console.log('data is not complete!')
+              /* prettier-ignore */ if (config.VERBOSE) console.log('data is not complete!')
             }
           })
           rl.on('error', (err) => {
