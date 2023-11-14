@@ -102,7 +102,7 @@ export async function queryLatestCycleRecords(
 ): Promise<P2P.CycleCreatorTypes.CycleRecord[] | void> {
   try {
     const sql = `SELECT * FROM cycles ORDER BY counter DESC LIMIT ${count ? count : 100}`
-    const cycleRecords = await db.all(sql)
+    const cycleRecords: DBCycle[] = (await db.all(sql)) as DBCycle[]
     let deserializedCycleRecords: P2P.CycleCreatorTypes.CycleRecord[] = []
     if (cycleRecords.length > 0) {
       deserializedCycleRecords = cycleRecords.map((cycleRecord: DBCycle) => {
