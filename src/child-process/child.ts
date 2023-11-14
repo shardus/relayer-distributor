@@ -123,7 +123,7 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
     }
   })
 
-  reader.on(`${reader.dataName}-end`, (totalEntriesItReads: any, totalEntriesDefinedOnFile: any) => {
+  reader.on(`${reader.dataName}-end`, (totalEntriesItReads: number, totalEntriesDefinedOnFile: number) => {
     console.info(
       `✔️ Finished reading ${totalEntriesItReads} entries from ${reader.dataName}-${reader.logCounter} log file having ${totalEntriesDefinedOnFile} entries.`
     )
