@@ -13,9 +13,8 @@
     "plugin:no-unsanitized/DOM",
     "prettier"
   ],
-  "ignorePatterns": [
+   "ignorePatterns": [
     "**/dbstore/*.ts",
-    "distributor.ts",
     "Config.ts"
   ],
   "rules": {
