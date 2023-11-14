@@ -71,7 +71,7 @@ export async function updateAccount(accountId: string, account: AccountCopy): Pr
 export async function queryAccountByAccountId(accountId: string): Promise<AccountCopy | void> {
   try {
     const sql = `SELECT * FROM accounts WHERE accountId=?`
-    const account: any = await db.get(sql, [accountId])
+    const account = await db.get(sql, [accountId]) as AccountCopy
     if (account) if (account && account.data) account.data = DeSerializeFromJsonString(account.data)
     if (config.VERBOSE) {
       Logger.mainLogger.debug('Account accountId', account)
@@ -87,7 +87,7 @@ export async function queryLatestAccounts(count: number): Promise<AccountCopy[]|
     const sql = `SELECT * FROM accounts ORDER BY cycleNumber DESC, timestamp DESC LIMIT ${
       count ? count : 100
     }`
-    const accounts: any = await db.all(sql)
+    const accounts: AccountCopy[] = await db.all(sql) as AccountCopy[]
     if (accounts.length > 0) {
       accounts.forEach((account: AccountCopy) => {
         if (account && account.data) account.data = DeSerializeFromJsonString(account.data)
