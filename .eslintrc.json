@@ -13,11 +13,12 @@
     "plugin:no-unsanitized/DOM",
     "prettier"
   ],
-  "ignorePatterns": [ "**/utils/*.ts",
-                      "**/log-reader/*.ts",
-                      "**/dbstore/*.ts",
-                      "distributor.ts",
-                      "Config.ts"],
+  "ignorePatterns": [
+    "**/log-reader/*.ts",
+    "**/dbstore/*.ts",
+    "distributor.ts",
+    "Config.ts"
+  ],
   "rules": {
     "no-empty": [
       1,
