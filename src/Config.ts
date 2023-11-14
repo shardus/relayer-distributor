@@ -60,7 +60,7 @@ export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args
     // Disabling eslint rule because the file is not user-controlled and is a static path
     // eslint-disable-next-line security/detect-non-literal-fs-filename
     const fileConfig = JSON.parse(readFileSync(file, { encoding: 'utf8' }))
-    const overwriteMerge = (target: [], source: [], options: {}): [] => source
+    const overwriteMerge = (target: [], source: []): [] => source
     config = merge(config, fileConfig, { arrayMerge: overwriteMerge })
   } catch (err) {
     if ((err as any).code !== 'ENOENT') {
