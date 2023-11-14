@@ -13,6 +13,11 @@ export interface OriginalTxData {
   sign: Signature
 }
 
+interface CycleCount {
+  cycle: number;
+  originalTxsData: number;
+}
+
 type DbOriginalTxData = OriginalTxData & {
   originalTxData: string
   sign: string
@@ -123,7 +128,7 @@ export async function queryOriginalTxDataByTxId(txId: string): Promise<OriginalT
   return null
 }
 
-export async function queryOriginalTxDataCountByCycles(start: number, end: number) {
+export async function queryOriginalTxDataCountByCycles(start: number, end: number): Promise<CycleCount[]> {
   let originalTxsData
   try {
     const sql = `SELECT cycle, COUNT(*) FROM originalTxsData GROUP BY cycle HAVING cycle BETWEEN ? AND ? ORDER BY cycle ASC`
