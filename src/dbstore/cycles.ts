@@ -11,6 +11,12 @@ export interface Cycle {
   cycleMarker: StateManager.StateMetaDataTypes.CycleMarker
 }
 
+interface DbCycle {
+  counter: string;
+  cycleRecord: string;
+  cycleMarker: string;
+}
+
 export async function insertCycle(cycle: Cycle): Promise<void> {
   try {
     const fields = Object.keys(cycle).join(', ')
@@ -63,12 +69,17 @@ export async function updateCycle(marker: string, cycle: Cycle): Promise<void> {
   }
 }
 
-export async function queryCycleByMarker(marker: string): Promise<any> {
+export async function queryCycleByMarker(marker: string): Promise<Cycle | null> {
   try {
     const sql = `SELECT * FROM cycles WHERE cycleMarker=? LIMIT 1`
-    const cycle: any = await db.get(sql, [marker])
-    if (cycle) {
-      if (cycle.cycleRecord) cycle.cycleRecord = DeSerializeFromJsonString(cycle.cycleRecord)
+    const dbCycle = await db.get(sql, [marker]) as DbCycle | null
+    let cycle: Cycle | null = null;
+    if (dbCycle) {
+      cycle = {
+        counter: parseInt(dbCycle.counter),
+        cycleRecord: dbCycle.cycleRecord ? DeSerializeFromJsonString(dbCycle.cycleRecord) : null,
+        cycleMarker: dbCycle.cycleMarker
+      }
     }
     if (config.VERBOSE) {
       Logger.mainLogger.debug('cycle marker', cycle)
@@ -76,19 +87,28 @@ export async function queryCycleByMarker(marker: string): Promise<any> {
     return cycle
   } catch (e) {
     Logger.mainLogger.error(e)
+    return null
   }
 }
-
-export async function queryLatestCycleRecords(count: number): Promise<any> {
+// TODO: ask: should this function return null or throw an error in the catch block? (asking for queryLatestCycleRecords, queryCycleByMarker)
+// where used in api.ts could put this if null or is it okay if null is signed and sent back from the API?
+  /* cycleInfo = await CycleDB.queryLatestCycleRecords(count)
+  if (cycleInfo === null) {
+    reply.send(Crypto.sign({ success: false, error: `No cycle records found` }))
+    return
+  } */
+export async function queryLatestCycleRecords(count: number): Promise<P2P.CycleCreatorTypes.CycleRecord[] | void> {
   try {
     const sql = `SELECT * FROM cycles ORDER BY counter DESC LIMIT ${count ? count : 100}`
-    let cycleRecords: any = await db.all(sql)
-    if (cycleRecords.length > 0) {
-      cycleRecords = cycleRecords.map((cycleRecord: any) => {
-        if (cycleRecord.cycleRecord)
-          cycleRecord.cycleRecord = DeSerializeFromJsonString(cycleRecord.cycleRecord)
-        return cycleRecord.cycleRecord
-      })
+    const dbCycles = (await db.all(sql)) as DbCycle[] | null
+    let cycleRecords: P2P.CycleCreatorTypes.CycleRecord[] = []
+    if (dbCycles.length > 0) {
+      cycleRecords = dbCycles.map((dbCycle: DbCycle) => {
+        let cycleRecord: P2P.CycleCreatorTypes.CycleRecord | null = null
+        if (dbCycle.cycleRecord)
+          cycleRecord = DeSerializeFromJsonString(dbCycle.cycleRecord)
+        return cycleRecord
+      }) as P2P.CycleCreatorTypes.CycleRecord[]
     }
     if (config.VERBOSE) {
       Logger.mainLogger.debug('cycle latest', cycleRecords)
@@ -98,28 +118,30 @@ export async function queryLatestCycleRecords(count: number): Promise<any> {
     Logger.mainLogger.error(e)
   }
 }
-
-export async function queryCycleRecordsBetween(start: number, end: number): Promise<any> {
+// TODO: ask about this function, should it return null or throw an error in the catch block?
+// is it okay to return null where deserializedCycleRecords is used in the else block?
+export async function queryCycleRecordsBetween(start: number, end: number): Promise<P2P.CycleCreatorTypes.CycleRecord[] | void> {
   try {
     const sql = `SELECT * FROM cycles WHERE counter BETWEEN ? AND ? ORDER BY counter ASC`
-    let cycleRecords: any = await db.all(sql, [start, end])
+    const cycleRecords: DbCycle[] = (await db.all(sql, [start, end])) as DbCycle[]
+    let deserializedCycleRecords: P2P.CycleCreatorTypes.CycleRecord[] = []
     if (cycleRecords.length > 0) {
-      cycleRecords = cycleRecords.map((cycleRecord: any) => {
+      deserializedCycleRecords = cycleRecords.map((cycleRecord: DbCycle) => {
         if (cycleRecord.cycleRecord)
-          cycleRecord.cycleRecord = DeSerializeFromJsonString(cycleRecord.cycleRecord)
-        return cycleRecord.cycleRecord
+          return DeSerializeFromJsonString(cycleRecord.cycleRecord)
+        else return null
       })
     }
     if (config.VERBOSE) {
       Logger.mainLogger.debug('cycle between', cycleRecords)
     }
-    return cycleRecords
+    return deserializedCycleRecords
   } catch (e) {
     Logger.mainLogger.error(e)
   }
 }
 
-export async function queryCyleCount(): Promise<any> {
+export async function queryCyleCount(): Promise<number> {
   let cycles
   try {
     const sql = `SELECT COUNT(*) FROM cycles`
