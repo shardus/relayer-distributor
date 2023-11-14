@@ -2,8 +2,22 @@ import { join } from 'path'
 import { config } from '../Config'
 const childPath = join(__dirname, 'child')
 import { fork, ChildProcess } from 'child_process'
+import { Socket } from 'net'
 
 const { MAX_CLIENTS_PER_CHILD } = config
+
+interface ClientRequestDataInterface {
+  header: object
+  socket: Socket
+}
+
+interface ChildMessageInterface {
+  type: string
+  data: {
+    err: string
+    pid: number
+  }
+}
 
 type childProcessId = number
 
@@ -11,15 +25,20 @@ export const childProcessMap = new Map<childProcessId, ChildProcess>()
 export const childClientMap = new Map<ChildProcess, string[]>()
 export const socketClientMap = new Map<string, childProcessId>()
 
+interface ClientInterface {
+  Process_ID: number
+  Socket_IDs: string[]
+}
+
 export const showAllProcesses = (): void => {
-  const clients: any = []
+  const clients: ClientInterface[] = []
   for (const [key, value] of childClientMap.entries()) {
     clients.push({ Process_ID: key.pid, Socket_IDs: value })
   }
   console.table(clients, ['Process_ID', 'Socket_IDs'])
 }
 
-const spinUpChildProcess = (clientKey: string, clientRequestData: any): void => {
+const spinUpChildProcess = (clientKey: string, clientRequestData: ClientRequestDataInterface): void => {
   try {
     const child = fork(childPath)
     child.send({ ...clientRequestData.header }, clientRequestData.socket)
@@ -32,7 +51,7 @@ const spinUpChildProcess = (clientKey: string, clientRequestData: any): void => 
   }
 }
 
-export const assignChildProcessToClient = (clientKey: string, clientRequestData: any): void => {
+export const assignChildProcessToClient = (clientKey: string, clientRequestData: ClientRequestDataInterface): void => {
   const numberofActiveChildProcesses = childProcessMap.size
   if (numberofActiveChildProcesses === 0) {
     spinUpChildProcess(clientKey, clientRequestData)
@@ -79,7 +98,7 @@ const removeSocketClient = (clientId: string): void => {
 }
 
 const registerChildMessageListener = (child: ChildProcess): void => {
-  child.on('message', ({ type, data }: any) => {
+  child.on('message', ({ type, data }: ChildMessageInterface) => {
     if (type === 'client_close') {
       console.log('Client Connection Termination Event Received, ID: ', data)
       removeSocketClient(data)
