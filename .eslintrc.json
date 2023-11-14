@@ -17,7 +17,6 @@
                       "**/log-reader/*.ts",
                       "**/dbstore/*.ts",
                       "distributor.ts",
-                      "api.ts",
                       "Logger.ts",
                       "Config.ts"],
   "rules": {
