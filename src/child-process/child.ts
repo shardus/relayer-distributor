@@ -4,7 +4,6 @@ import { join } from 'path'
 import { config, overrideDefaultConfig } from '../Config'
 import DataLogReader from '../log-reader'
 import { IncomingMessage } from 'http'
-import { P2P } from '@shardus/types'
 
 const FILE = join(process.cwd(), 'distributor-config.json')
 overrideDefaultConfig(FILE, process.env, process.argv)
@@ -98,13 +97,13 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
   reader.on(`${reader.dataName}-data`, (logData: unknown) => {
     try {
       const data: {
-        cycle?: P2P.CycleCreatorTypes.CycleRecord
+        cycle?: unknown
         receipt?: unknown
         originalTx?: unknown
       } = {}
       switch (reader.dataName) {
         case 'cycle':
-          data.cycle = logData as P2P.CycleCreatorTypes.CycleRecord
+          data.cycle = logData
           break
         case 'receipt':
           data.receipt = logData
