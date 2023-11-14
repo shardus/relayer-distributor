@@ -4,7 +4,7 @@ import { join } from 'path'
 import { config, overrideDefaultConfig } from '../Config'
 import DataLogReader from '../log-reader'
 import { IncomingMessage } from 'http'
-import {P2P} from '@shardus/types'
+import { P2P } from '@shardus/types'
 
 const FILE = join(process.cwd(), 'distributor-config.json')
 overrideDefaultConfig(FILE, process.env, process.argv)
