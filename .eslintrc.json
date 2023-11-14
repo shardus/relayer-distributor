@@ -14,7 +14,6 @@
     "prettier"
   ],
   "ignorePatterns": [
-    "**/log-reader/*.ts",
     "**/dbstore/*.ts",
     "distributor.ts",
     "Config.ts"
