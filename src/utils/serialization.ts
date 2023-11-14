@@ -28,7 +28,7 @@ function base64BufferReviver(key: string, value: any): unknown {
   const originalObject = value
   if (
     isObject(originalObject) &&
-    originalObject.in('dataType') &&
+    Object.prototype.hasOwnProperty.call(originalObject, 'dataType') &&
     originalObject.dataType &&
     originalObject.dataType == 'bh'
   ) {
