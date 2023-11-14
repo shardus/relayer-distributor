@@ -72,13 +72,13 @@ export async function updateCycle(marker: string, cycle: Cycle): Promise<void> {
 export async function queryCycleByMarker(marker: string): Promise<Cycle | null> {
   try {
     const sql = `SELECT * FROM cycles WHERE cycleMarker=? LIMIT 1`
-    const dbCycle = await db.get(sql, [marker]) as DbCycle
-    let cycle: Cycle | null = null;
+    const dbCycle = (await db.get(sql, [marker])) as DbCycle
+    let cycle: Cycle | null = null
     if (dbCycle) {
       cycle = {
         counter: dbCycle.counter,
         cycleRecord: dbCycle.cycleRecord ? DeSerializeFromJsonString(dbCycle.cycleRecord) : null,
-        cycleMarker: dbCycle.cycleMarker
+        cycleMarker: dbCycle.cycleMarker,
       }
     }
     if (config.VERBOSE) {
@@ -92,12 +92,14 @@ export async function queryCycleByMarker(marker: string): Promise<Cycle | null> 
 }
 // TODO: ask: should this function return null or throw an error in the catch block? (asking for queryLatestCycleRecords, queryCycleByMarker)
 // where used in api.ts could put this if null or is it okay if null is signed and sent back from the API?
-  /* cycleInfo = await CycleDB.queryLatestCycleRecords(count)
+/* cycleInfo = await CycleDB.queryLatestCycleRecords(count)
   if (cycleInfo === null) {
     reply.send(Crypto.sign({ success: false, error: `No cycle records found` }))
     return
   } */
-export async function queryLatestCycleRecords(count: number): Promise<P2P.CycleCreatorTypes.CycleRecord[] | void> {
+export async function queryLatestCycleRecords(
+  count: number
+): Promise<P2P.CycleCreatorTypes.CycleRecord[] | void> {
   try {
     const sql = `SELECT * FROM cycles ORDER BY counter DESC LIMIT ${count ? count : 100}`
     const dbCycles = (await db.all(sql)) as DbCycle[] | null
@@ -105,8 +107,7 @@ export async function queryLatestCycleRecords(count: number): Promise<P2P.CycleC
     if (dbCycles.length > 0) {
       cycleRecords = dbCycles.map((dbCycle: DbCycle) => {
         let cycleRecord: P2P.CycleCreatorTypes.CycleRecord | null = null
-        if (dbCycle.cycleRecord)
-          cycleRecord = DeSerializeFromJsonString(dbCycle.cycleRecord)
+        if (dbCycle.cycleRecord) cycleRecord = DeSerializeFromJsonString(dbCycle.cycleRecord)
         return cycleRecord
       }) as P2P.CycleCreatorTypes.CycleRecord[]
     }
@@ -120,15 +121,17 @@ export async function queryLatestCycleRecords(count: number): Promise<P2P.CycleC
 }
 // TODO: ask about this function, should it return null or throw an error in the catch block?
 // is it okay to return null where deserializedCycleRecords is used in the else block?
-export async function queryCycleRecordsBetween(start: number, end: number): Promise<P2P.CycleCreatorTypes.CycleRecord[] | void> {
+export async function queryCycleRecordsBetween(
+  start: number,
+  end: number
+): Promise<P2P.CycleCreatorTypes.CycleRecord[] | void> {
   try {
     const sql = `SELECT * FROM cycles WHERE counter BETWEEN ? AND ? ORDER BY counter ASC`
     const cycleRecords: DbCycle[] = (await db.all(sql, [start, end])) as DbCycle[]
     let deserializedCycleRecords: P2P.CycleCreatorTypes.CycleRecord[] = []
     if (cycleRecords.length > 0) {
       deserializedCycleRecords = cycleRecords.map((cycleRecord: DbCycle) => {
-        if (cycleRecord.cycleRecord)
-          return DeSerializeFromJsonString(cycleRecord.cycleRecord)
+        if (cycleRecord.cycleRecord) return DeSerializeFromJsonString(cycleRecord.cycleRecord)
         else return null
       })
     }

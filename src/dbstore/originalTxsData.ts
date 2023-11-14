@@ -14,8 +14,8 @@ export interface OriginalTxData {
 }
 
 interface CycleCount {
-  cycle: number;
-  originalTxsData: number;
+  cycle: number
+  originalTxsData: number
 }
 
 type DbOriginalTxData = OriginalTxData & {

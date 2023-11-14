@@ -79,7 +79,7 @@ export async function bulkInsertTransactions(transactions: Transaction[]): Promi
 export async function queryTransactionByTxId(txId: string): Promise<Transaction | void> {
   try {
     const sql = `SELECT * FROM transactions WHERE txId=?`
-    const transaction = await db.get(sql, [txId]) as DBTransaction
+    const transaction = (await db.get(sql, [txId])) as DBTransaction
     if (transaction) {
       if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
       // TODO: ASK: Should key be here?
@@ -101,7 +101,7 @@ export async function queryTransactionByTxId(txId: string): Promise<Transaction 
 export async function queryTransactionByAccountId(accountId: string): Promise<Transaction | void> {
   try {
     const sql = `SELECT * FROM transactions WHERE accountId=?`
-    const transaction = await db.get(sql, [accountId]) as DBTransaction
+    const transaction = (await db.get(sql, [accountId])) as DBTransaction
     if (transaction) {
       if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
       //TODO: look at interface comment
@@ -125,7 +125,7 @@ export async function queryLatestTransactions(count: number): Promise<Transactio
     const sql = `SELECT * FROM transactions ORDER BY cycleNumber DESC, timestamp DESC LIMIT ${
       count ? count : 100
     }`
-    const transactions = await db.all(sql) as DBTransaction[]
+    const transactions = (await db.all(sql)) as DBTransaction[]
     if (transactions.length > 0) {
       transactions.forEach((transaction: DBTransaction) => {
         if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
@@ -190,7 +190,10 @@ export async function queryTransactionCount(): Promise<number> {
   return transactions
 }
 
-export async function queryTransactionCountBetweenCycles(startCycleNumber: number, endCycleNumber: number): Promise<number> {
+export async function queryTransactionCountBetweenCycles(
+  startCycleNumber: number,
+  endCycleNumber: number
+): Promise<number> {
   let transactions
   try {
     const sql = `SELECT COUNT(*) FROM transactions WHERE cycleNumber BETWEEN ? AND ?`

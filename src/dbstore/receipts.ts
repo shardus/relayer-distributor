@@ -12,7 +12,7 @@ export interface Receipt {
   timestamp: number
   result: object
   beforeStateAccounts: unknown[] //TODO: WrappedAccount[] in explorer
-  accounts: unknown[] //TODO: WrappedAccount[] type in explorer 
+  accounts: unknown[] //TODO: WrappedAccount[] type in explorer
   receipt: unknown //TODO: WrappedAccount type in explorer
   sign: Signature
 }
@@ -74,14 +74,14 @@ export async function bulkInsertReceipts(receipts: Receipt[]): Promise<void> {
 export async function queryReceiptByReceiptId(receiptId: string): Promise<Receipt | void> {
   try {
     const sql = `SELECT * FROM receipts WHERE receiptId=?`
-    const receipt = await db.get(sql, [receiptId]) as ReceiptFromDB
+    const receipt = (await db.get(sql, [receiptId])) as ReceiptFromDB
     if (receipt) {
       if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
       if (receipt.beforeStateAccounts)
         receipt.beforeStateAccounts = DeSerializeFromJsonString(receipt.beforeStateAccounts)
       if (receipt.accounts) receipt.accounts = DeSerializeFromJsonString(receipt.accounts)
       if (receipt.receipt) receipt.receipt = DeSerializeFromJsonString(receipt.receipt)
-      if (receipt.result) receipt.result = DeSerializeFromJsonString(receipt.result) 
+      if (receipt.result) receipt.result = DeSerializeFromJsonString(receipt.result)
       if (receipt.sign) receipt.sign = DeSerializeFromJsonString(receipt.sign)
     }
     if (config.VERBOSE) {
@@ -96,7 +96,7 @@ export async function queryReceiptByReceiptId(receiptId: string): Promise<Receip
 export async function queryLatestReceipts(count: number): Promise<Receipt[] | void> {
   try {
     const sql = `SELECT * FROM receipts ORDER BY cycle DESC, timestamp DESC LIMIT ${count ? count : 100}`
-    const receipts= await db.all(sql) as ReceiptFromDB[]
+    const receipts = (await db.all(sql)) as ReceiptFromDB[]
     if (receipts.length > 0) {
       receipts.forEach((receipt: ReceiptFromDB) => {
         if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
@@ -158,7 +158,10 @@ export async function queryReceiptCount(): Promise<number> {
   return receipts
 }
 
-export async function queryReceiptCountByCycles(start: number, end: number): Promise<Array<{cycle: number, receipts: number}> | void> {
+export async function queryReceiptCountByCycles(
+  start: number,
+  end: number
+): Promise<Array<{ cycle: number; receipts: number }> | void> {
   let receipts
   try {
     const sql = `SELECT cycle, COUNT(*) FROM receipts GROUP BY cycle HAVING cycle BETWEEN ? AND ? ORDER BY cycle ASC`
@@ -178,7 +181,10 @@ export async function queryReceiptCountByCycles(start: number, end: number): Pro
   return receipts
 }
 
-export async function queryReceiptCountBetweenCycles(startCycleNumber: number, endCycleNumber: number): Promise<number | void> {
+export async function queryReceiptCountBetweenCycles(
+  startCycleNumber: number,
+  endCycleNumber: number
+): Promise<number | void> {
   let receipts
   try {
     const sql = `SELECT COUNT(*) FROM receipts WHERE cycle BETWEEN ? AND ?`
