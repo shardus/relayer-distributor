@@ -14,7 +14,16 @@ const wss = new WebSocket.Server({ noServer: true })
 
 const socketClientMap = new Map<string, WebSocket.WebSocket>()
 
-process.on('message', (dataProp: any, socket: any) => {
+//interface for dataProp
+interface DataPropInterface {
+  headers?: Record<string, string>
+  head?: Buffer
+  clientKey?: string
+  type?: string
+  data?: string
+}
+
+process.on('message', (dataProp: DataPropInterface, socket: any) => {
   if (dataProp.headers) {
     wss.handleUpgrade(dataProp, socket, dataProp.head, (ws: any) => {
       const clientId = dataProp.clientKey
