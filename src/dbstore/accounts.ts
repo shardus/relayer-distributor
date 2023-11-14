@@ -13,7 +13,7 @@ export type AccountCopy = {
   isGlobal?: boolean
 }
 
-export async function insertAccount(account: AccountCopy) {
+export async function insertAccount(account: AccountCopy): Promise<void> {
   try {
     const fields = Object.keys(account).join(', ')
     const placeholders = Object.keys(account).fill('?').join(', ')
@@ -32,7 +32,7 @@ export async function insertAccount(account: AccountCopy) {
   }
 }
 
-export async function bulkInsertAccounts(accounts: AccountCopy[]) {
+export async function bulkInsertAccounts(accounts: AccountCopy[]): Promise<void> {
   try {
     const fields = Object.keys(accounts[0]).join(', ')
     const placeholders = Object.keys(accounts[0]).fill('?').join(', ')
@@ -49,7 +49,7 @@ export async function bulkInsertAccounts(accounts: AccountCopy[]) {
   }
 }
 
-export async function updateAccount(accountId: string, account: AccountCopy) {
+export async function updateAccount(accountId: string, account: AccountCopy): Promise<void> {
   try {
     const sql = `UPDATE accounts SET cycleNumber = $cycleNumber, timestamp = $timestamp, data = $data, hash = $hash WHERE accountId = $accountId `
     await db.run(sql, {
@@ -68,7 +68,7 @@ export async function updateAccount(accountId: string, account: AccountCopy) {
   }
 }
 
-export async function queryAccountByAccountId(accountId: string) {
+export async function queryAccountByAccountId(accountId: string): Promise<AccountCopy | void> {
   try {
     const sql = `SELECT * FROM accounts WHERE accountId=?`
     let account: any = await db.get(sql, [accountId])
@@ -82,7 +82,7 @@ export async function queryAccountByAccountId(accountId: string) {
   }
 }
 
-export async function queryLatestAccounts(count: number) {
+export async function queryLatestAccounts(count: number): Promise<AccountCopy[]|void> {
   try {
     const sql = `SELECT * FROM accounts ORDER BY cycleNumber DESC, timestamp DESC LIMIT ${
       count ? count : 100
@@ -102,7 +102,7 @@ export async function queryLatestAccounts(count: number) {
   }
 }
 
-export async function queryAccounts(skip: number = 0, limit: number = 10000) {
+export async function queryAccounts(skip: number = 0, limit: number = 10000): Promise<AccountCopy[]|void> {
   let accounts
   try {
     const sql = `SELECT * FROM accounts ORDER BY cycleNumber ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
@@ -121,7 +121,7 @@ export async function queryAccounts(skip: number = 0, limit: number = 10000) {
   return accounts
 }
 
-export async function queryAccountCount() {
+export async function queryAccountCount(): Promise<AccountCopy[]|void> {
   let accounts
   try {
     const sql = `SELECT COUNT(*) FROM accounts`
@@ -137,7 +137,7 @@ export async function queryAccountCount() {
   return accounts
 }
 
-export async function queryAccountCountBetweenCycles(startCycleNumber: number, endCycleNumber: number) {
+export async function queryAccountCountBetweenCycles(startCycleNumber: number, endCycleNumber: number): Promise<AccountCopy[]|void> {
   let accounts
   try {
     const sql = `SELECT COUNT(*) FROM accounts WHERE cycleNumber BETWEEN ? AND ?`
@@ -158,7 +158,7 @@ export async function queryAccountsBetweenCycles(
   limit = 10000,
   startCycleNumber: number,
   endCycleNumber: number
-) {
+): Promise<AccountCopy[]|void> {
   let accounts
   try {
     const sql = `SELECT * FROM accounts WHERE cycleNumber BETWEEN ? AND ? ORDER BY cycleNumber ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
