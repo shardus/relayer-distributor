@@ -48,7 +48,10 @@ export async function bulkInsertAccounts(accounts: AccountCopy[]): Promise<void>
   try {
     const fields = Object.keys(accounts[0]).join(', ')
     const placeholders = Object.keys(accounts[0]).fill('?').join(', ')
-    const values = extractValuesFromArray(accounts) || []
+    const values = extractValuesFromArray(accounts)
+    if (!values || values.length === 0) {
+      throw new Error(`No values extracted from accounts. Number of accounts: ${accounts.length}`)
+    }
     let sql = 'INSERT OR REPLACE INTO accounts (' + fields + ') VALUES (' + placeholders + ')'
     for (let i = 1; i < accounts.length; i++) {
       sql = sql + ', (' + placeholders + ')'

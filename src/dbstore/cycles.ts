@@ -21,7 +21,10 @@ export async function insertCycle(cycle: Cycle): Promise<void> {
   try {
     const fields = Object.keys(cycle).join(', ')
     const placeholders = Object.keys(cycle).fill('?').join(', ')
-    const values = extractValues(cycle) || []
+    const values = extractValues(cycle)
+    if (!values || values.length === 0) {
+      throw new Error(`No values extracted from cycle ${cycle.cycleRecord.counter}`)
+    }
     const sql = 'INSERT OR REPLACE INTO cycles (' + fields + ') VALUES (' + placeholders + ')'
     await db.run(sql, values)
     Logger.mainLogger.debug('Successfully inserted Cycle', cycle.cycleRecord.counter, cycle.cycleMarker)
@@ -39,7 +42,10 @@ export async function bulkInsertCycles(cycles: Cycle[]): Promise<void> {
   try {
     const fields = Object.keys(cycles[0]).join(', ')
     const placeholders = Object.keys(cycles[0]).fill('?').join(', ')
-    const values = extractValuesFromArray(cycles) || []
+    const values = extractValuesFromArray(cycles)
+    if (!values || values.length === 0) {
+      throw new Error(`No values extracted from cycles. Number of cycles: ${cycles.length}`)
+    }
     let sql = 'INSERT OR REPLACE INTO cycles (' + fields + ') VALUES (' + placeholders + ')'
     for (let i = 1; i < cycles.length; i++) {
       sql = sql + ', (' + placeholders + ')'
