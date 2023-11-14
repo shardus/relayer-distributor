@@ -63,7 +63,7 @@ export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args
     const overwriteMerge = (target: [], source: []): [] => source
     config = merge(config, fileConfig, { arrayMerge: overwriteMerge })
   } catch (err) {
-    if ((err as any).code !== 'ENOENT') {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
       console.warn('Failed to parse config file:', err)
     }
   }
