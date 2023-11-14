@@ -51,7 +51,10 @@ const spinUpChildProcess = (clientKey: string, clientRequestData: ClientRequestD
   }
 }
 
-export const assignChildProcessToClient = (clientKey: string, clientRequestData: ClientRequestDataInterface): void => {
+export const assignChildProcessToClient = (
+  clientKey: string,
+  clientRequestData: ClientRequestDataInterface
+): void => {
   const numberofActiveChildProcesses = childProcessMap.size
   if (numberofActiveChildProcesses === 0) {
     spinUpChildProcess(clientKey, clientRequestData)
@@ -101,7 +104,7 @@ const registerChildMessageListener = (child: ChildProcess): void => {
   child.on('message', ({ type, data }: ChildMessageInterface) => {
     if (type === 'client_close') {
       console.log('Client Connection Termination Event Received, ID: ', data)
-      removeSocketClient(data)
+      removeSocketClient(data.pid.toString())
     }
     if (type === 'child_close') {
       console.log('Terminating Child Process due to error: ', data.err)
