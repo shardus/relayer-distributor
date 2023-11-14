@@ -26,7 +26,10 @@ export async function insertAccount(account: AccountCopy): Promise<void> {
   try {
     const fields = Object.keys(account).join(', ')
     const placeholders = Object.keys(account).fill('?').join(', ')
-    const values = extractValues(account) || []
+    const values = extractValues(account)
+    if (!values || values.length === 0) {
+      throw new Error(`No values extracted from account ${account.accountId}`);
+    }
     const sql = 'INSERT OR REPLACE INTO accounts (' + fields + ') VALUES (' + placeholders + ')'
     await db.run(sql, values)
     if (config.VERBOSE) {
