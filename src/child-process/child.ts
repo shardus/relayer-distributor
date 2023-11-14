@@ -3,6 +3,7 @@ import * as Crypto from '../utils/Crypto'
 import { join } from 'path'
 import { config, overrideDefaultConfig } from '../Config'
 import DataLogReader from '../log-reader'
+import { IncomingMessage } from 'http';
 
 const FILE = join(process.cwd(), 'distributor-config.json')
 overrideDefaultConfig(FILE, process.env, process.argv)
@@ -23,9 +24,9 @@ interface DataPropInterface {
   data?: string
 }
 
-process.on('message', (dataProp: DataPropInterface, socket: any) => {
+process.on('message', (dataProp: DataPropInterface, socket: IncomingMessage) => {
   if (dataProp.headers) {
-    wss.handleUpgrade(dataProp, socket, dataProp.head, (ws: any) => {
+    wss.handleUpgrade(dataProp, socket, dataProp.head, (ws: WebSocket.WebSocket) => {
       const clientId = dataProp.clientKey
       if (socketClientMap.has(clientId)) {
         socketClientMap.get(clientId).close(NEW_CONNECTION_CODE, 'New Connection Established')
