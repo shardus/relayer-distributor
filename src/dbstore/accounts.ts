@@ -15,7 +15,7 @@ export type AccountCopy = {
 
 export interface DBAccount {
   accountId: string
-  data: string 
+  data: string
   timestamp: number
   hash: string
   cycleNumber: number
