@@ -34,6 +34,9 @@ export async function insertReceipt(receipt: Receipt): Promise<void> {
     const fields = Object.keys(receipt).join(', ')
     const placeholders = Object.keys(receipt).fill('?').join(', ')
     const values = extractValues(receipt)
+    if (!values) {
+      throw new Error('Failed to extract values from receipt')
+    }
     const sql = 'INSERT OR REPLACE INTO receipts (' + fields + ') VALUES (' + placeholders + ')'
     await db.run(sql, values)
     if (config.VERBOSE) {
@@ -53,6 +56,9 @@ export async function bulkInsertReceipts(receipts: Receipt[]): Promise<void> {
     const fields = Object.keys(receipts[0]).join(', ')
     const placeholders = Object.keys(receipts[0]).fill('?').join(', ')
     const values = extractValuesFromArray(receipts)
+    if (!values) {
+      throw new Error('Failed to extract values from receipt')
+    }
     let sql = 'INSERT OR REPLACE INTO receipts (' + fields + ') VALUES (' + placeholders + ')'
     for (let i = 1; i < receipts.length; i++) {
       sql = sql + ', (' + placeholders + ')'
