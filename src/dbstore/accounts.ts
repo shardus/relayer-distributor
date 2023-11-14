@@ -102,13 +102,13 @@ export async function queryLatestAccounts(count: number): Promise<AccountCopy[]|
   }
 }
 
-export async function queryAccounts(skip: number = 0, limit: number = 10000): Promise<AccountCopy[]|void> {
+export async function queryAccounts(skip = 0, limit = 10000): Promise<AccountCopy[]|void> {
   let accounts
   try {
     const sql = `SELECT * FROM accounts ORDER BY cycleNumber ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
     accounts = await db.all(sql)
     if (accounts.length > 0) {
-      accounts.forEach((account: any) => {
+      accounts.forEach((account: AccountCopy) => {
         if (account && account.data) account.data = DeSerializeFromJsonString(account.data)
       })
     }
