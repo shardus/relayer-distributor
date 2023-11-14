@@ -137,7 +137,7 @@ export async function queryAccountCount(): Promise<AccountCopy[]|void> {
   return accounts
 }
 
-export async function queryAccountCountBetweenCycles(startCycleNumber: number, endCycleNumber: number): Promise<AccountCopy[]|void> {
+export async function queryAccountCountBetweenCycles(startCycleNumber: number, endCycleNumber: number): Promise<number | void> {
   let accounts
   try {
     const sql = `SELECT COUNT(*) FROM accounts WHERE cycleNumber BETWEEN ? AND ?`
