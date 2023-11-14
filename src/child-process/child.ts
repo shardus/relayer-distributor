@@ -99,12 +99,12 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
     try {
       const data: {
         cycle?: P2P.CycleCreatorTypes.CycleRecord
-        receipt?: any
-        originalTx?: any
+        receipt?: unknown
+        originalTx?: unknown
       } = {}
       switch (reader.dataName) {
         case 'cycle':
-          data.cycle = logData
+          data.cycle = logData as P2P.CycleCreatorTypes.CycleRecord
           break
         case 'receipt':
           data.receipt = logData
