@@ -7,7 +7,7 @@ import { DbCycle, Cycle } from './cycles'
 import { Receipt, ReceiptFromDB } from './receipts'
 import { OriginalTxData } from './originalTxsData'
 import { DBTransaction, Transaction } from './transactions'
-import { Account, AccountCopy } from './accounts'
+import { DBAccount, AccountCopy } from './accounts'
 
 const sqlite3 = verbose()
 let db: Database
@@ -29,7 +29,7 @@ type DBRecord =
   | ReceiptFromDB
   | OriginalTxData
   | Transaction
-  | Account
+  | DBAccount
   | AccountCopy
 
 export async function init(config: Config): Promise<void> {
