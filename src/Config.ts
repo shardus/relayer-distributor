@@ -57,6 +57,8 @@ export enum SubscriptionType {
 export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args: string[]): void {
   // Override config from config file
   try {
+    // Disabling eslint rule because the file is not user-controlled and is a static path
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const fileConfig = JSON.parse(readFileSync(file, { encoding: 'utf8' }))
     const overwriteMerge = (target: [], source: [], options: {}): [] => source
     config = merge(config, fileConfig, { arrayMerge: overwriteMerge })
