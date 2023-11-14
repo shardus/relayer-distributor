@@ -1,4 +1,4 @@
-import { Signature, Keypair } from '@shardus/crypto-utils'
+import { Signature } from '@shardus/crypto-utils'
 import * as db from './sqlite3storage'
 import { extractValues, extractValuesFromArray } from './sqlite3storage'
 import * as Logger from '../Logger'
@@ -9,7 +9,7 @@ export interface OriginalTxData {
   txId: string
   timestamp: number
   cycle: number
-  originalTxData: any
+  originalTxData: unknown
   sign: Signature
 }
 
