@@ -11,17 +11,17 @@ export interface Cycle {
   cycleMarker: StateManager.StateMetaDataTypes.CycleMarker
 }
 
-interface DbCycle {
-  counter: string;
-  cycleRecord: string;
-  cycleMarker: string;
+export interface DbCycle {
+  cycleMarker: string
+  counter: number
+  cycleRecord: string
 }
 
 export async function insertCycle(cycle: Cycle): Promise<void> {
   try {
     const fields = Object.keys(cycle).join(', ')
     const placeholders = Object.keys(cycle).fill('?').join(', ')
-    const values = extractValues(cycle)
+    const values = extractValues(cycle) || []
     const sql = 'INSERT OR REPLACE INTO cycles (' + fields + ') VALUES (' + placeholders + ')'
     await db.run(sql, values)
     Logger.mainLogger.debug('Successfully inserted Cycle', cycle.cycleRecord.counter, cycle.cycleMarker)
@@ -39,7 +39,7 @@ export async function bulkInsertCycles(cycles: Cycle[]): Promise<void> {
   try {
     const fields = Object.keys(cycles[0]).join(', ')
     const placeholders = Object.keys(cycles[0]).fill('?').join(', ')
-    const values = extractValuesFromArray(cycles)
+    const values = extractValuesFromArray(cycles) || []
     let sql = 'INSERT OR REPLACE INTO cycles (' + fields + ') VALUES (' + placeholders + ')'
     for (let i = 1; i < cycles.length; i++) {
       sql = sql + ', (' + placeholders + ')'
@@ -72,11 +72,11 @@ export async function updateCycle(marker: string, cycle: Cycle): Promise<void> {
 export async function queryCycleByMarker(marker: string): Promise<Cycle | null> {
   try {
     const sql = `SELECT * FROM cycles WHERE cycleMarker=? LIMIT 1`
-    const dbCycle = await db.get(sql, [marker]) as DbCycle | null
+    const dbCycle = await db.get(sql, [marker]) as DbCycle
     let cycle: Cycle | null = null;
     if (dbCycle) {
       cycle = {
-        counter: parseInt(dbCycle.counter),
+        counter: dbCycle.counter,
         cycleRecord: dbCycle.cycleRecord ? DeSerializeFromJsonString(dbCycle.cycleRecord) : null,
         cycleMarker: dbCycle.cycleMarker
       }
