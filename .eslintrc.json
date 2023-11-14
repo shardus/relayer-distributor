@@ -17,7 +17,7 @@
                       "**/log-reader/*.ts",
                       "**/dbstore/*.ts",
                       "distributor.ts",
-                      "**/child-process/*.ts",
+                      "api.ts",
                       "Logger.ts",
                       "Config.ts"],
   "rules": {
