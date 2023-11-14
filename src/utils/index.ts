@@ -23,7 +23,7 @@ export function setHashKey(key: string): void {
 }
 
 export function initLogger(): void {
-  let logsConfig: any
+  let logsConfig: Logger.LogsConfiguration
   try {
     logsConfig = JSON.parse(readFileSync(resolve(__dirname, '../../distributor-log.json'), 'utf8'))
   } catch (err) {

@@ -2,9 +2,9 @@ import * as Logger from '../Logger'
 
 export async function sleep(time: number): Promise<void> {
   Logger.mainLogger.debug('sleeping for', time)
-  return new Promise((resolve: any) => {
+  return new Promise<void>((resolve) => {
     setTimeout(() => {
-      resolve(true)
+      resolve()
     }, time)
   })
 }
@@ -23,11 +23,11 @@ Example of def:
 Returns a string with the first error encountered or and empty string ''.
 Errors are: "[name] is required" or "[name] must be, [type]"
 */
-export function validateTypes(inp: any, def: any): string {
+export function validateTypes(inp: object, def: object): string {
   if (inp === undefined) return 'input is undefined'
   if (inp === null) return 'input is null'
   if (typeof inp !== 'object') return 'input must be object, not ' + typeof inp
-  const map: any = {
+  const map: { [key: string]: string } = {
     string: 's',
     number: 'n',
     boolean: 'b',
@@ -35,7 +35,7 @@ export function validateTypes(inp: any, def: any): string {
     array: 'a',
     object: 'o',
   }
-  const imap: any = {
+  const imap: { [key: string]: string } = {
     s: 'string',
     n: 'number',
     b: 'boolean',
@@ -44,6 +44,7 @@ export function validateTypes(inp: any, def: any): string {
     o: 'object',
   }
   const fields = Object.keys(def)
+  /* eslint-disable security/detect-object-injection */
   for (const name of fields) {
     const types = def[name]
     const opt = types.substr(-1, 1) === '?' ? 1 : 0
@@ -64,6 +65,7 @@ export function validateTypes(inp: any, def: any): string {
       if (!found) return name + ' must be' + be
     }
   }
+  /* eslint-enable security/detect-object-injection */
   return ''
 }
 

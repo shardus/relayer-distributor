@@ -4,7 +4,7 @@ import { SignedObject } from '@shardus/crypto-utils'
 import { getDistributorInfo, getDistributorSecretKey } from './index'
 // Crypto initialization fns
 
-export function setCryptoHashKey(hashkey: string): any {
+export function setCryptoHashKey(hashkey: string): void {
   core.init(hashkey)
 }
 
