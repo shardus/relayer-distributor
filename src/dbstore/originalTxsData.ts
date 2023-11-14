@@ -58,7 +58,7 @@ export async function queryOriginalTxDataCount(startCycle?: number, endCycle?: n
   let originalTxsData
   try {
     let sql = `SELECT COUNT(*) FROM originalTxsData`
-    const values: any[] = []
+    const values: number[] = []
     if (startCycle && endCycle) {
       sql += ` WHERE cycle BETWEEN ? AND ?`
       values.push(startCycle, endCycle)
@@ -83,7 +83,7 @@ export async function queryOriginalTxsData(
   try {
     let sql = `SELECT * FROM originalTxsData`
     const sqlSuffix = ` ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
-    const values: any[] = []
+    const values: number[] = []
     if (startCycle && endCycle) {
       sql += ` WHERE cycle BETWEEN ? AND ?`
       values.push(startCycle, endCycle)
@@ -143,12 +143,12 @@ export async function queryOriginalTxDataCountByCycles(start: number, end: numbe
   return originalTxsData
 }
 
-export async function queryLatestOriginalTxs(count: number): Promise<void> {
+export async function queryLatestOriginalTxs(count: number): Promise<DbOriginalTxData[] | void> {
   try {
     const sql = `SELECT * FROM originalTxsData ORDER BY cycle DESC, timestamp DESC LIMIT ${
       count ? count : 100
     }`
-    const originalTxs: any = await db.all(sql)
+    const originalTxs = (await db.all(sql)) as DbOriginalTxData[]
     if (originalTxs.length > 0) {
       originalTxs.forEach((tx: DbOriginalTxData) => {
         if (tx.originalTxData) tx.originalTxData = DeSerializeFromJsonString(tx.originalTxData)
