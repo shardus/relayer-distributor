@@ -12,7 +12,7 @@ const NEW_CONNECTION_CODE = 3000
 
 const wss = new WebSocket.Server({ noServer: true })
 
-const socketClientMap = new Map<string, any>()
+const socketClientMap = new Map<string, WebSocket.WebSocket>()
 
 process.on('message', (dataProp: any, socket: any) => {
   if (dataProp.headers) {
