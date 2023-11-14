@@ -3,7 +3,8 @@ import * as Crypto from '../utils/Crypto'
 import { join } from 'path'
 import { config, overrideDefaultConfig } from '../Config'
 import DataLogReader from '../log-reader'
-import { IncomingMessage } from 'http';
+import { IncomingMessage } from 'http'
+import {P2P} from '@shardus/types'
 
 const FILE = join(process.cwd(), 'distributor-config.json')
 overrideDefaultConfig(FILE, process.env, process.argv)
@@ -97,7 +98,7 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
   reader.on(`${reader.dataName}-data`, (logData: unknown) => {
     try {
       const data: {
-        cycle?: any
+        cycle?: P2P.CycleCreatorTypes.CycleRecord
         receipt?: any
         originalTx?: any
       } = {}
