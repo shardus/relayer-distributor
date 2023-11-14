@@ -7,22 +7,14 @@ import { DbCycle, Cycle } from './cycles'
 import { Receipt, ReceiptFromDB } from './receipts'
 import { OriginalTxData } from './originalTxsData'
 import { DBTransaction, Transaction } from './transactions'
+import { Account, AccountCopy } from './accounts'
 
 
 
 const sqlite3 = verbose()
 let db: Database
 
-interface DBAccount {
-  accountId: string
-  data: object
-  timestamp: number
-  hash: string
-  cycleNumber: number
-  isGlobal: boolean
-}
-
-interface DBOriginalTxData {
+export interface DBOriginalTxData {
   txId: string
   timestamp: number
   cycle: number
@@ -30,7 +22,7 @@ interface DBOriginalTxData {
   sign: object
 }
 
-type DBRecord = DBTransaction | DbCycle | DBAccount | DBOriginalTxData | Cycle | Receipt | ReceiptFromDB | OriginalTxData | DBAccount | Transaction
+type DBRecord = DBTransaction | DbCycle | DBOriginalTxData | Cycle | Receipt | ReceiptFromDB | OriginalTxData | Transaction | Account | AccountCopy
 
 export async function init(config: Config): Promise<void> {
   console.log(config.ARCHIVER_DB_PATH)
