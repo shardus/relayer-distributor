@@ -18,7 +18,7 @@ export async function insertAccount(account: AccountCopy): Promise<void> {
     const fields = Object.keys(account).join(', ')
     const placeholders = Object.keys(account).fill('?').join(', ')
     const values = extractValues(account)
-    let sql = 'INSERT OR REPLACE INTO accounts (' + fields + ') VALUES (' + placeholders + ')'
+    const sql = 'INSERT OR REPLACE INTO accounts (' + fields + ') VALUES (' + placeholders + ')'
     await db.run(sql, values)
     if (config.VERBOSE) {
       Logger.mainLogger.debug('Successfully inserted Account', account.accountId)
@@ -71,7 +71,7 @@ export async function updateAccount(accountId: string, account: AccountCopy): Pr
 export async function queryAccountByAccountId(accountId: string): Promise<AccountCopy | void> {
   try {
     const sql = `SELECT * FROM accounts WHERE accountId=?`
-    let account: any = await db.get(sql, [accountId])
+    const account: any = await db.get(sql, [accountId])
     if (account) if (account && account.data) account.data = DeSerializeFromJsonString(account.data)
     if (config.VERBOSE) {
       Logger.mainLogger.debug('Account accountId', account)
