@@ -8,6 +8,7 @@ import { overrideDefaultConfig, config, Subscriber } from './Config'
 import * as http from 'http'
 import * as dbstore from './dbstore'
 import * as Logger from './Logger'
+import * as net from 'net'
 
 import { registerRoutes, validateRequestData } from './api'
 import { assignChildProcessToClient, showAllProcesses, getChildProcessForClient } from './child-process'
@@ -36,11 +37,12 @@ async function start(): Promise<void> {
   // Refresh the subscribers
   if (config.limitToSubscribersOnly) refreshSubscribers()
 
-  const serverFactory = (handler): any => {
+  const serverFactory = (
+    handler: (req: http.IncomingMessage, res: http.ServerResponse) => void
+  ): http.Server => {
     httpServer = http.createServer((req, res) => {
       handler(req, res)
     })
-
     return httpServer
   }
 
@@ -54,7 +56,7 @@ async function start(): Promise<void> {
   })
 
   // Handles incoming upgrade requests from clients (to upgrade to a Socket connection)
-  httpServer.on('upgrade', (req: http.IncomingMessage, socket: any, head: Buffer) => {
+  httpServer.on('upgrade', (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => {
     const queryObject = url.parse(req.url!, true).query
     const decodedData = decodeURIComponent(queryObject.data as string)
     const clientData = JSON.parse(decodedData)
@@ -113,6 +115,7 @@ const addSigListeners = (): void => {
   Logger.mainLogger.debug('Registered signal listeners.')
 }
 
+/* eslint-disable security/detect-object-injection */
 const refreshSubscribers = (): void => {
   const subscribers: Subscriber[] = config.subscribers
   for (let i = 0; i < subscribers.length; i++) {
@@ -132,5 +135,6 @@ const refreshSubscribers = (): void => {
     }
   }, 60_000)
 }
+/* eslint-enable security/detect-object-injection */
 
 start()
