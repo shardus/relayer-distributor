@@ -18,12 +18,12 @@ type DbOriginalTxData = OriginalTxData & {
   sign: string
 }
 
-export async function insertOriginalTxData(OriginalTxData: OriginalTxData) {
+export async function insertOriginalTxData(OriginalTxData: OriginalTxData): Promise<void> {
   try {
     const fields = Object.keys(OriginalTxData).join(', ')
     const placeholders = Object.keys(OriginalTxData).fill('?').join(', ')
     const values = extractValues(OriginalTxData)
-    let sql = 'INSERT OR REPLACE INTO originalTxsData (' + fields + ') VALUES (' + placeholders + ')'
+    const sql = 'INSERT OR REPLACE INTO originalTxsData (' + fields + ') VALUES (' + placeholders + ')'
     await db.run(sql, values)
     if (config.VERBOSE) {
       Logger.mainLogger.debug('Successfully inserted OriginalTxData', OriginalTxData.txId)
@@ -37,7 +37,7 @@ export async function insertOriginalTxData(OriginalTxData: OriginalTxData) {
   }
 }
 
-export async function bulkInsertOriginalTxsData(originalTxsData: OriginalTxData[]) {
+export async function bulkInsertOriginalTxsData(originalTxsData: OriginalTxData[]): Promise<void> {
   try {
     const fields = Object.keys(originalTxsData[0]).join(', ')
     const placeholders = Object.keys(originalTxsData[0]).fill('?').join(', ')
@@ -58,7 +58,7 @@ export async function queryOriginalTxDataCount(startCycle?: number, endCycle?: n
   let originalTxsData
   try {
     let sql = `SELECT COUNT(*) FROM originalTxsData`
-    let values: any[] = []
+    const values: any[] = []
     if (startCycle && endCycle) {
       sql += ` WHERE cycle BETWEEN ? AND ?`
       values.push(startCycle, endCycle)
@@ -82,8 +82,8 @@ export async function queryOriginalTxsData(
   let originalTxsData
   try {
     let sql = `SELECT * FROM originalTxsData`
-    let sqlSuffix = ` ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
-    let values: any[] = []
+    const sqlSuffix = ` ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
+    const values: any[] = []
     if (startCycle && endCycle) {
       sql += ` WHERE cycle BETWEEN ? AND ?`
       values.push(startCycle, endCycle)
@@ -143,7 +143,7 @@ export async function queryOriginalTxDataCountByCycles(start: number, end: numbe
   return originalTxsData
 }
 
-export async function queryLatestOriginalTxs(count: number) {
+export async function queryLatestOriginalTxs(count: number): Promise<void> {
   try {
     const sql = `SELECT * FROM originalTxsData ORDER BY cycle DESC, timestamp DESC LIMIT ${
       count ? count : 100
