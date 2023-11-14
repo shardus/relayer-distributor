@@ -6,7 +6,7 @@ import { DeSerializeFromJsonString, SerializeToJsonString } from '../utils/seria
 
 export type AccountCopy = {
   accountId: string
-  data: any
+  data: string
   timestamp: number
   hash: string
   cycleNumber: number
@@ -89,7 +89,7 @@ export async function queryLatestAccounts(count: number) {
     }`
     const accounts: any = await db.all(sql)
     if (accounts.length > 0) {
-      accounts.forEach((account: any) => {
+      accounts.forEach((account: AccountCopy) => {
         if (account && account.data) account.data = DeSerializeFromJsonString(account.data)
       })
     }
@@ -164,7 +164,7 @@ export async function queryAccountsBetweenCycles(
     const sql = `SELECT * FROM accounts WHERE cycleNumber BETWEEN ? AND ? ORDER BY cycleNumber ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
     accounts = await db.all(sql, [startCycleNumber, endCycleNumber])
     if (accounts.length > 0) {
-      accounts.forEach((account: any) => {
+      accounts.forEach((account: AccountCopy) => {
         if (account && account.data) account.data = DeSerializeFromJsonString(account.data)
       })
     }
