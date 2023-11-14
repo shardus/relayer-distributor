@@ -27,7 +27,10 @@ export async function insertOriginalTxData(OriginalTxData: OriginalTxData): Prom
   try {
     const fields = Object.keys(OriginalTxData).join(', ')
     const placeholders = Object.keys(OriginalTxData).fill('?').join(', ')
-    const values = extractValues(OriginalTxData) || [] // Ensure values is always an array
+    const values = extractValues(OriginalTxData)
+    if (!values || values.length === 0) {
+      throw new Error(`No values extracted from OriginalTxData with txId ${OriginalTxData.txId}`)
+    }
     const sql = 'INSERT OR REPLACE INTO originalTxsData (' + fields + ') VALUES (' + placeholders + ')'
     await db.run(sql, values)
     if (config.VERBOSE) {
@@ -46,7 +49,12 @@ export async function bulkInsertOriginalTxsData(originalTxsData: OriginalTxData[
   try {
     const fields = Object.keys(originalTxsData[0]).join(', ')
     const placeholders = Object.keys(originalTxsData[0]).fill('?').join(', ')
-    const values = extractValuesFromArray(originalTxsData) || []
+    const values = extractValuesFromArray(originalTxsData)
+    if (!values || values.length === 0) {
+      throw new Error(
+        `No values extracted from originalTxsData. Number of originalTxsData: ${originalTxsData.length}`
+      )
+    }
     let sql = 'INSERT OR REPLACE INTO originalTxsData (' + fields + ') VALUES (' + placeholders + ')'
     for (let i = 1; i < originalTxsData.length; i++) {
       sql = sql + ', (' + placeholders + ')'

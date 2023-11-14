@@ -44,7 +44,10 @@ export async function insertTransaction(transaction: Transaction): Promise<void>
   try {
     const fields = Object.keys(transaction).join(', ')
     const placeholders = Object.keys(transaction).fill('?').join(', ')
-    const values = extractValues(transaction) || [] // Ensure values is always an array
+    const values = extractValues(transaction) // Ensure values is always an array
+    if (!values || values.length === 0) {
+      throw new Error(`No values extracted from transaction with txId ${transaction.txId}`)
+    }
     const sql = 'INSERT OR REPLACE INTO transactions (' + fields + ') VALUES (' + placeholders + ')'
     await db.run(sql, values)
     if (config.VERBOSE) {
@@ -64,6 +67,9 @@ export async function bulkInsertTransactions(transactions: Transaction[]): Promi
     const fields = Object.keys(transactions[0]).join(', ')
     const placeholders = Object.keys(transactions[0]).fill('?').join(', ')
     const values = extractValuesFromArray(transactions) || []
+    if (!values || values.length === 0) {
+      throw new Error(`No values extracted from transactions. Number of transactions: ${transactions.length}`)
+    }
     let sql = 'INSERT OR REPLACE INTO transactions (' + fields + ') VALUES (' + placeholders + ')'
     for (let i = 1; i < transactions.length; i++) {
       sql = sql + ', (' + placeholders + ')'
