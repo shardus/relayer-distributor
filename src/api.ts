@@ -12,6 +12,46 @@ import * as ReceiptDB from './dbstore/receipts'
 import * as OriginalTxDB from './dbstore/originalTxsData'
 import { distributorSubscribers } from './distributor'
 
+interface RequestData {
+  sign: {
+    owner: string
+    sig: string
+  }
+  sender: string
+  collectorInfo?: {
+    subscriptionType: string
+    timestamp: number
+  }
+}
+
+interface ExpectedDataType {
+  owner?: string
+  sig?: string
+  sign?: string
+  startCycle?: string
+  count?: string
+  start?: string
+  end?: string
+  endCycle?: string
+  sender?: string
+  type?: string
+  txId?: string
+  txIdList?: string
+  page?: string
+  accountId?: string
+  collectorInfo?:
+    | {
+        subscriptionType: string
+        timestamp: number
+      }
+    | string
+}
+
+interface ValidationResult {
+  success: boolean
+  error?: string
+}
+
 const TXID_LENGTH = 64
 
 //Types and interfaces for request body
