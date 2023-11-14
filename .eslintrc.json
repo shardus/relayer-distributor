@@ -14,7 +14,6 @@
     "prettier"
   ],
    "ignorePatterns": [
-    "**/dbstore/*.ts",
     "Config.ts"
   ],
   "rules": {
