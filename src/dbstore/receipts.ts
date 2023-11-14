@@ -7,13 +7,13 @@ import { DeSerializeFromJsonString } from '../utils/serialization'
 
 export interface Receipt {
   receiptId: string
-  tx: unknown //TODO: Transaction in explorer
+  tx: unknown 
   cycle: number
   timestamp: number
   result: object
-  beforeStateAccounts: unknown[] //TODO: WrappedAccount[] in explorer
-  accounts: unknown[] //TODO: WrappedAccount[] type in explorer
-  receipt: unknown //TODO: WrappedAccount type in explorer
+  beforeStateAccounts: unknown[]
+  accounts: unknown[]
+  receipt: unknown 
   sign: Signature
 }
 
