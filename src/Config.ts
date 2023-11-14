@@ -97,8 +97,7 @@ export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args
           config[param] = String(env[param]).toLowerCase() === 'true'
           break
         }
-        default: {
-        }
+        // Default case was removed because it was an empty block. Will exit if no cases match.
       }
     }
   }
@@ -124,8 +123,7 @@ export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args
           }
           break
         }
-        default: {
-        }
+        // Default case was removed because it was an empty block. Will exit if no cases match.
       }
     }
   }
