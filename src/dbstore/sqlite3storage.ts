@@ -3,7 +3,7 @@ import * as path from 'path'
 import { Config } from '../Config'
 import { SerializeToJsonString } from '../utils/serialization'
 import { verbose, Database } from 'sqlite3'
-import { DbCycle, Cycle } from './cycles'
+import { DBCycle, Cycle } from './cycles'
 import { Receipt, ReceiptFromDB } from './receipts'
 import { OriginalTxData } from './originalTxsData'
 import { DBTransaction, Transaction } from './transactions'
@@ -22,7 +22,7 @@ export interface DBOriginalTxData {
 
 type DBRecord =
   | DBTransaction
-  | DbCycle
+  | DBCycle
   | DBOriginalTxData
   | Cycle
   | Receipt
