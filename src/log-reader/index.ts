@@ -58,7 +58,8 @@ class DataLogReader extends EventEmitter {
           if (data.includes('End: Number of entries: ')) {
             foundEndNumberofEntriesLine = true
           } else {
-            const parse = JSON.parse(data)
+            // commented below line b/c it causes lint error(parse is never used)
+            // const parse = JSON.parse(data)
             startEntries++
           }
           // console.log(this.dataName, 'startEntries', startEntries)
@@ -80,7 +81,7 @@ class DataLogReader extends EventEmitter {
     }
 
     // listen to the active log file
-    fs.watch(activeLogFilePath, async (event: any, filename: any) => {
+    fs.watch(activeLogFilePath, async (event: string, filename: string) => {
       if (filename) {
         let activeLog = ''
         do {
@@ -100,7 +101,7 @@ class DataLogReader extends EventEmitter {
     })
   }
 
-  async readLogFile(startSize: number = 0, startEntries = 0): Promise<void> {
+  async readLogFile(startSize = 0, startEntries = 0): Promise<void> {
     const logFile = path.join(this.logDir, `${this.dataName}-log${this.logCounter}.txt`)
     if (!(await this.fileExists(logFile))) {
       throw new Error(`Log file ${logFile} does not exist`)
