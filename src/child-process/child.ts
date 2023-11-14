@@ -41,7 +41,7 @@ process.on('message', (dataProp: DataPropInterface, socket: IncomingMessage) => 
       )
 
       // Listening to messages from Socket Client
-      ws.on('message', (msg: any) => {
+      ws.on('message', (msg: WebSocket.Data) => {
         const clientMsg = JSON.parse(msg.toString('utf8'))
         if (clientMsg.type && clientMsg.data) {
           switch (clientMsg.type) {
@@ -83,7 +83,7 @@ process.on('message', (dataProp: DataPropInterface, socket: IncomingMessage) => 
   }
 })
 
-const sendDataToAllClients = ({ signedData }: any): void => {
+const sendDataToAllClients = ({ signedData }: { signedData: Record<string, unknown> }): void => {
   for (const client of socketClientMap.values()) {
     client.send(
       JSON.stringify({
@@ -94,7 +94,7 @@ const sendDataToAllClients = ({ signedData }: any): void => {
 }
 
 const registerDataReaderListeners = (reader: DataLogReader): void => {
-  reader.on(`${reader.dataName}-data`, (logData: any) => {
+  reader.on(`${reader.dataName}-data`, (logData: unknown) => {
     try {
       const data: {
         cycle?: any
@@ -128,7 +128,7 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
     )
   })
 
-  reader.on('error', (err: any) => {
+  reader.on('error', (err: Error) => {
     console.error(`Error reading log file: ${err}`)
   })
 }
