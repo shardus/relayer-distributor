@@ -88,8 +88,6 @@ export async function queryTransactionByTxId(txId: string): Promise<Transaction 
     const transaction = (await db.get(sql, [txId])) as DBTransaction
     if (transaction) {
       if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
-      // TODO: ASK: Should key be here?
-      //if (transaction.keys) transaction.keys = DeSerializeFromJsonString(transaction.keys)
       if (transaction.result) transaction.result = DeSerializeFromJsonString(transaction.result)
       if (transaction.originalTxData)
         transaction.originalTxData = DeSerializeFromJsonString(transaction.originalTxData)
@@ -110,8 +108,6 @@ export async function queryTransactionByAccountId(accountId: string): Promise<Tr
     const transaction = (await db.get(sql, [accountId])) as DBTransaction
     if (transaction) {
       if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
-      //TODO: look at interface comment
-      //if (transaction.keys) transaction.keys = DeSerializeFromJsonString(transaction.keys)
       if (transaction.result) transaction.result = DeSerializeFromJsonString(transaction.result)
       if (transaction.originalTxData)
         transaction.originalTxData = DeSerializeFromJsonString(transaction.originalTxData)
@@ -135,7 +131,6 @@ export async function queryLatestTransactions(count: number): Promise<Transactio
     if (transactions.length > 0) {
       transactions.forEach((transaction: DBTransaction) => {
         if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
-        //if (transaction.keys) transaction.keys = DeSerializeFromJsonString(transaction.keys)
         if (transaction.result) transaction.result = DeSerializeFromJsonString(transaction.result)
         if (transaction.originalTxData)
           transaction.originalTxData = DeSerializeFromJsonString(transaction.originalTxData)
@@ -159,7 +154,6 @@ export async function queryTransactions(skip = 0, limit = 10000): Promise<Transa
     if (transactions.length > 0) {
       transactions.forEach((transaction: DBTransaction) => {
         if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
-        //if (transaction.keys) transaction.keys = DeSerializeFromJsonString(transaction.keys)
         if (transaction.result) transaction.result = DeSerializeFromJsonString(transaction.result)
         if (transaction.originalTxData)
           transaction.originalTxData = DeSerializeFromJsonString(transaction.originalTxData)
@@ -228,7 +222,6 @@ export async function queryTransactionsBetweenCycles(
     if (transactions.length > 0) {
       transactions.forEach((transaction: DBTransaction) => {
         if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
-        //if (transaction.keys) transaction.keys = DeSerializeFromJsonString(transaction.keys)
         if (transaction.result) transaction.result = DeSerializeFromJsonString(transaction.result)
         if (transaction.originalTxData)
           transaction.originalTxData = DeSerializeFromJsonString(transaction.originalTxData)
