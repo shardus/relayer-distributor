@@ -12,46 +12,6 @@ import * as ReceiptDB from './dbstore/receipts'
 import * as OriginalTxDB from './dbstore/originalTxsData'
 import { distributorSubscribers } from './distributor'
 
-interface RequestData {
-  sign: {
-    owner: string
-    sig: string
-  }
-  sender: string
-  collectorInfo?: {
-    subscriptionType: string
-    timestamp: number
-  }
-}
-
-interface ExpectedDataType {
-  owner?: string
-  sig?: string
-  sign?: string
-  startCycle?: string
-  count?: string
-  start?: string
-  end?: string
-  endCycle?: string
-  sender?: string
-  type?: string
-  txId?: string
-  txIdList?: string
-  page?: string
-  accountId?: string
-  collectorInfo?:
-    | {
-        subscriptionType: string
-        timestamp: number
-      }
-    | string
-}
-
-interface ValidationResult {
-  success: boolean
-  error?: string
-}
-
 const TXID_LENGTH = 64
 
 //Types and interfaces for request body
@@ -132,7 +92,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
         return
       }
-      cycleInfo = await CycleDB.queryLatestCycleRecords(count) || []
+      cycleInfo = (await CycleDB.queryLatestCycleRecords(count)) || []
     } else if (start || end) {
       const from = start ? start : 0
       const to = end ? end : from + 100
@@ -148,7 +108,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         reply.send(Crypto.sign({ success: false, error: `Exceed maximum limit of 100 cycles` }))
         return
       }
-      cycleInfo = await CycleDB.queryCycleRecordsBetween(from, to) || []
+      cycleInfo = (await CycleDB.queryCycleRecordsBetween(from, to)) || []
     } else {
       reply.send({
         success: false,
@@ -198,7 +158,9 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       return
     }
     const { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
-    let originalTxs: Array<OriginalTxData | OriginalTxData2> | number = []
+    let originalTxs:
+      | (OriginalTxDB.OriginalTxData | OriginalTxDB.CycleCount | OriginalTxDB.CycleCount)[]
+      | number = []
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
         reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
@@ -208,7 +170,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
         return
       }
-      originalTxs = [await OriginalTxDB.queryLatestOriginalTxs(count)]
+      originalTxs = (await OriginalTxDB.queryLatestOriginalTxs(count)) || []
     } else if (txId) {
       if (txId.length !== TXID_LENGTH) {
         reply.send(
@@ -219,7 +181,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      originalTxs = [await OriginalTxDB.queryOriginalTxDataByTxId(txId)]
+      originalTxs = [await OriginalTxDB.queryOriginalTxDataByTxId(txId)] || []
     } else if (txIdList) {
       let txIdListArr: string[] = []
       try {
@@ -335,7 +297,12 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       return
     }
     const { count, start, end, startCycle, endCycle, type, page, txId, txIdList } = _request.body
-    let receipts: ReceiptDB.Receipt[] = []
+    let receipts:
+      | ReceiptDB.Receipt
+      | ReceiptDB.Receipt[]
+      | { cycle: number; receipts: number }[]
+      | void
+      | number = []
     if (count) {
       if (count <= 0 || Number.isNaN(count)) {
         reply.send(Crypto.sign({ success: false, error: `Invalid count` }))
@@ -345,7 +312,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
         return
       }
-      receipts = await ReceiptDB.queryLatestReceipts(count)
+      receipts = (await ReceiptDB.queryLatestReceipts(count)) || []
     } else if (txId) {
       if (txId.length !== TXID_LENGTH) {
         reply.send(
@@ -356,7 +323,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      receipts = await ReceiptDB.queryReceiptByReceiptId(txId)
+      receipts = (await ReceiptDB.queryReceiptByReceiptId(txId)) || []
     } else if (txIdList) {
       let txIdListArr: string[] = []
       try {
@@ -380,7 +347,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
           )
           return
         }
-        const receipt: ReceiptDB.Receipt = await ReceiptDB.queryReceiptByReceiptId(txId)
+        const receipts: ReceiptDB.Receipt[] = []
+        const receipt = await ReceiptDB.queryReceiptByReceiptId(txId)
         if (receipt) receipts.push(receipt)
       }
     } else if (start || end) {
@@ -405,7 +373,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      receipts = await ReceiptDB.queryReceipts(from, count + 1)
+      receipts = (await ReceiptDB.queryReceipts(from, count + 1)) || []
     } else if (startCycle || endCycle) {
       const from = startCycle ? startCycle : 0
       const to = endCycle ? endCycle : from + 100
@@ -429,7 +397,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         return
       }
       if (type === 'tally') {
-        receipts = await ReceiptDB.queryReceiptCountByCycles(from, to)
+        receipts = (await ReceiptDB.queryReceiptCountByCycles(from, to)) || []
       } else if (type === 'count') {
         receipts = await ReceiptDB.queryReceiptCountBetweenCycles(from, to)
       } else {
@@ -496,7 +464,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
         return
       }
-      accounts = await AccountDB.queryLatestAccounts(count) || []
+      accounts = (await AccountDB.queryLatestAccounts(count)) || []
     } else if (start || end) {
       const from = start ? start : 0
       const to = end ? end : from + 100
@@ -519,7 +487,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      accounts = await AccountDB.queryAccounts(from, count + 1) || []
+      accounts = (await AccountDB.queryAccounts(from, count + 1)) || []
       res = Crypto.sign({
         accounts,
       })
@@ -545,7 +513,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      totalAccounts = await AccountDB.queryAccountCountBetweenCycles(from, to) || 0
+      totalAccounts = (await AccountDB.queryAccountCountBetweenCycles(from, to)) || 0
       if (page) {
         if (page < 1 || Number.isNaN(page)) {
           reply.send(Crypto.sign({ success: false, error: `Invalid page number` }))
@@ -554,7 +522,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         let skip = page - 1
         const limit = 10000 // query 10000 accounts
         if (skip > 0) skip = skip * limit
-        accounts = await AccountDB.queryAccountsBetweenCycles(skip, limit, from, to) || []
+        accounts = (await AccountDB.queryAccountsBetweenCycles(skip, limit, from, to)) || []
         res = Crypto.sign({
           accounts,
           totalAccounts,
@@ -626,7 +594,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         reply.send(Crypto.sign({ success: false, error: `Max count is 100` }))
         return
       }
-      transactions = await TransactionDB.queryLatestTransactions(count) || []
+      transactions = (await TransactionDB.queryLatestTransactions(count)) || []
     } else if (start || end) {
       const from = start ? start : 0
       const to = end ? end : from + 100
@@ -649,7 +617,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         )
         return
       }
-      transactions = await TransactionDB.queryTransactions(from, count + 1) || []
+      transactions = (await TransactionDB.queryTransactions(from, count + 1)) || []
       res = Crypto.sign({
         transactions,
       })
@@ -684,7 +652,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         let skip = page - 1
         const limit = 10000 // query 10000 transactions
         if (skip > 0) skip = skip * limit
-        transactions = await TransactionDB.queryTransactionsBetweenCycles(skip, limit, from, to) || []
+        transactions = (await TransactionDB.queryTransactionsBetweenCycles(skip, limit, from, to)) || []
         res = Crypto.sign({
           transactions,
           totalTransactions,

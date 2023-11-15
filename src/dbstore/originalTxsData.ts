@@ -13,7 +13,7 @@ export interface OriginalTxData {
   sign: Signature
 }
 
-interface CycleCount {
+export interface CycleCount {
   cycle: number
   originalTxsData: number
 }
