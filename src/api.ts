@@ -348,7 +348,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
           return
         }
         const receipts: ReceiptDB.Receipt[] = []
-        const receipt = await ReceiptDB.queryReceiptByReceiptId(txId)
+        const receipt: void | ReceiptDB.Receipt = await ReceiptDB.queryReceiptByReceiptId(txId)
         if (receipt) receipts.push(receipt)
       }
     } else if (start || end) {
