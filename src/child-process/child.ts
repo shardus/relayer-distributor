@@ -125,7 +125,7 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
 
 ;(async (): Promise<void> => {
   try {
-    const DATA_LOG_PATH = join(__dirname, config.DATA_LOG_DIR)
+    const DATA_LOG_PATH = config.DATA_LOG_DIR
     const cycleReader = new DataLogReader(DATA_LOG_PATH, 'cycle')
     const receiptReader = new DataLogReader(DATA_LOG_PATH, 'receipt')
     const originalTxReader = new DataLogReader(DATA_LOG_PATH, 'originalTx')
@@ -137,7 +137,7 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
     if (e.code === 'ENOENT') {
       console.error(
         '❌ Path to the data-logs directory does not exist. Please check the path in the config file.\n Current Path: ',
-        join(__dirname, config.DATA_LOG_DIR)
+        config.DATA_LOG_DIR
       )
       // Terminate the Child Process
       process.send!({
