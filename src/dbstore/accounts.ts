@@ -4,7 +4,8 @@ import * as Logger from '../Logger'
 import { config } from '../Config'
 import { DeSerializeFromJsonString, SerializeToJsonString } from '../utils/serialization'
 
-export type AccountCopy = {
+/** Same as type AccountsCopy in the shardus core */
+export interface AccountCopy {
   accountId: string
   data: object
   timestamp: number
@@ -13,13 +14,8 @@ export type AccountCopy = {
   isGlobal?: boolean
 }
 
-export interface DBAccount {
-  accountId: string
+export type DBAccount = AccountCopy & {
   data: string
-  timestamp: number
-  hash: string
-  cycleNumber: number
-  isGlobal?: boolean
 }
 
 export async function insertAccount(account: AccountCopy): Promise<void> {

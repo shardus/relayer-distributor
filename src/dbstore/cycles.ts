@@ -11,9 +11,7 @@ export interface Cycle {
   cycleMarker: StateManager.StateMetaDataTypes.CycleMarker
 }
 
-export interface DBCycle {
-  cycleMarker: string
-  counter: number
+export type DBCycle = Cycle & {
   cycleRecord: string
 }
 

@@ -1,43 +1,25 @@
-import { Signature } from '@shardus/crypto-utils'
 import * as db from './sqlite3storage'
 import { extractValues, extractValuesFromArray } from './sqlite3storage'
 import * as Logger from '../Logger'
 import { config } from '../Config'
 import { DeSerializeFromJsonString } from '../utils/serialization'
 
+/**
+ * Transaction is for storing dapp receipt (eg. evm receipt in shardeum)
+ * If there is no dapp receipt, we can skip storing in transactions table and use receipts table
+ */
 export interface Transaction {
   txId: string
-  accountId: string
+  appReceiptId?: string // Dapp receipt id (eg. txhash of evm receipt in shardeum)
   timestamp: number
   cycleNumber: number
   data: object
-  // keys: any // TODO: Remove this field in the places it is used
-  result: TxResult
-  originalTxData: object | null
-  sign: Signature
+  originalTxData: object
 }
 
-export interface DBTransaction {
-  txId: string
-  accountId: string
-  timestamp: number
-  cycleNumber: number
+export type DBTransaction = Transaction & {
   data: string
-  result: string
-  originalTxData: string | null
-  sign: string
-}
-
-export interface TxResult {
-  txIdShort: string
-  txResult: string
-}
-
-export interface TxRaw {
-  tx: {
-    raw: string
-    timestamp: number
-  }
+  originalTxData: string
 }
 
 export async function insertTransaction(transaction: Transaction): Promise<void> {
@@ -88,10 +70,8 @@ export async function queryTransactionByTxId(txId: string): Promise<Transaction 
     const transaction = (await db.get(sql, [txId])) as DBTransaction
     if (transaction) {
       if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
-      if (transaction.result) transaction.result = DeSerializeFromJsonString(transaction.result)
       if (transaction.originalTxData)
         transaction.originalTxData = DeSerializeFromJsonString(transaction.originalTxData)
-      if (transaction.sign) transaction.sign = DeSerializeFromJsonString(transaction.sign)
     }
     if (config.VERBOSE) {
       Logger.mainLogger.debug('Transaction txId', transaction)
@@ -108,10 +88,8 @@ export async function queryTransactionByAccountId(accountId: string): Promise<Tr
     const transaction = (await db.get(sql, [accountId])) as DBTransaction
     if (transaction) {
       if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
-      if (transaction.result) transaction.result = DeSerializeFromJsonString(transaction.result)
       if (transaction.originalTxData)
         transaction.originalTxData = DeSerializeFromJsonString(transaction.originalTxData)
-      if (transaction.sign) transaction.sign = DeSerializeFromJsonString(transaction.sign)
     }
     if (config.VERBOSE) {
       Logger.mainLogger.debug('Transaction accountId', transaction)
@@ -131,10 +109,8 @@ export async function queryLatestTransactions(count: number): Promise<Transactio
     if (transactions.length > 0) {
       transactions.forEach((transaction: DBTransaction) => {
         if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
-        if (transaction.result) transaction.result = DeSerializeFromJsonString(transaction.result)
         if (transaction.originalTxData)
           transaction.originalTxData = DeSerializeFromJsonString(transaction.originalTxData)
-        if (transaction.sign) transaction.sign = DeSerializeFromJsonString(transaction.sign)
       })
     }
     if (config.VERBOSE) {
@@ -154,10 +130,8 @@ export async function queryTransactions(skip = 0, limit = 10000): Promise<Transa
     if (transactions.length > 0) {
       transactions.forEach((transaction: DBTransaction) => {
         if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
-        if (transaction.result) transaction.result = DeSerializeFromJsonString(transaction.result)
         if (transaction.originalTxData)
           transaction.originalTxData = DeSerializeFromJsonString(transaction.originalTxData)
-        if (transaction.sign) transaction.sign = DeSerializeFromJsonString(transaction.sign)
       })
     }
   } catch (e) {
@@ -222,10 +196,8 @@ export async function queryTransactionsBetweenCycles(
     if (transactions.length > 0) {
       transactions.forEach((transaction: DBTransaction) => {
         if (transaction.data) transaction.data = DeSerializeFromJsonString(transaction.data)
-        if (transaction.result) transaction.result = DeSerializeFromJsonString(transaction.result)
         if (transaction.originalTxData)
           transaction.originalTxData = DeSerializeFromJsonString(transaction.originalTxData)
-        if (transaction.sign) transaction.sign = DeSerializeFromJsonString(transaction.sign)
       })
     }
   } catch (e) {

@@ -4,7 +4,7 @@ import { Config } from '../Config'
 import { SerializeToJsonString } from '../utils/serialization'
 import { verbose, Database } from 'sqlite3'
 import { DBCycle, Cycle } from './cycles'
-import { Receipt, ReceiptFromDB } from './receipts'
+import { Receipt, DBReceipt } from './receipts'
 import { OriginalTxData } from './originalTxsData'
 import { DBTransaction, Transaction } from './transactions'
 import { DBAccount, AccountCopy } from './accounts'
@@ -26,7 +26,7 @@ type DBRecord =
   | DBOriginalTxData
   | Cycle
   | Receipt
-  | ReceiptFromDB
+  | DBReceipt
   | OriginalTxData
   | Transaction
   | DBAccount

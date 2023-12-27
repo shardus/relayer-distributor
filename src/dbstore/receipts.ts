@@ -4,29 +4,90 @@ import { extractValues, extractValuesFromArray } from './sqlite3storage'
 import * as Logger from '../Logger'
 import { config } from '../Config'
 import { DeSerializeFromJsonString } from '../utils/serialization'
+import * as Account from '../dbstore/accounts'
 
-export interface Receipt {
-  receiptId: string
-  tx: unknown
+// We might have to move type definitions to a separate place
+
+/**
+ * ArchiverReceipt is the full data (shardusReceipt + appReceiptData + accounts ) of a tx that is sent to the archiver
+ */
+export interface ArchiverReceipt {
+  tx: {
+    originalTxData: OpaqueTransaction
+    txId: string
+    timestamp: number
+  }
   cycle: number
-  timestamp: number
-  result: object
-  beforeStateAccounts: unknown[]
-  accounts: unknown[]
-  receipt: unknown
-  sign: Signature
+  beforeStateAccounts: Account.AccountCopy[]
+  accounts: Account.AccountCopy[]
+  appReceiptData: unknown
+  appliedReceipt: AppliedReceipt2
+  executionShardKey: string
 }
 
-export interface ReceiptFromDB {
+type ObjectAlias = object
+/**
+ * OpaqueTransaction is the way shardus should see transactions internally. it should not be able to mess with parameters individually
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface OpaqueTransaction extends ObjectAlias {}
+
+export type AppliedVote = {
+  txid: string
+  transaction_result: boolean
+  account_id: string[]
+  //if we add hash state before then we could prove a dishonest apply vote
+  //have to consider software version
+  account_state_hash_after: string[]
+  account_state_hash_before: string[]
+  cant_apply: boolean // indicates that the preapply could not give a pass or fail
+  node_id: string // record the node that is making this vote.. todo could look this up from the sig later
+  sign: Signature
+  // hash of app data
+  app_data_hash: string
+}
+
+/**
+ * a space efficent version of the receipt
+ *
+ * use TellSignedVoteHash to send just signatures of the vote hash (votes must have a deterministic sort now)
+ * never have to send or request votes individually, should be able to rely on existing receipt send/request
+ * for nodes that match what is required.
+ */
+export type AppliedReceipt2 = {
+  txid: string
+  result: boolean
+  //single copy of vote
+  appliedVote: AppliedVote
+  confirmOrChallenge: ConfirmOrChallengeMessage
+  //all signatures for this vote
+  signatures: [Signature] //Could have all signatures or best N.  (lowest signature value?)
+  // hash of app data
+  app_data_hash: string
+}
+
+export type ConfirmOrChallengeMessage = {
+  message: string
+  nodeId: string
+  appliedVote: AppliedVote
+  sign: Signature
+}
+export interface Receipt extends ArchiverReceipt {
   receiptId: string
-  tx: string
-  cycle: number
   timestamp: number
-  result: string
-  beforeStateAccounts: string | null
+}
+
+export type DBReceipt = Receipt & {
+  tx: string
+  beforeStateAccounts: string
   accounts: string
-  receipt: string | null
-  sign: string
+  appReceiptData: string | null
+  appliedReceipt: string
+}
+
+export interface ReceiptsCountByCycle {
+  cycle: number
+  receipts: number
 }
 
 export async function insertReceipt(receipt: Receipt): Promise<void> {
@@ -74,20 +135,19 @@ export async function bulkInsertReceipts(receipts: Receipt[]): Promise<void> {
 export async function queryReceiptByReceiptId(receiptId: string): Promise<Receipt | void> {
   try {
     const sql = `SELECT * FROM receipts WHERE receiptId=?`
-    const receipt = (await db.get(sql, [receiptId])) as ReceiptFromDB
+    const receipt = (await db.get(sql, [receiptId])) as DBReceipt
     if (receipt) {
       if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
       if (receipt.beforeStateAccounts)
         receipt.beforeStateAccounts = DeSerializeFromJsonString(receipt.beforeStateAccounts)
       if (receipt.accounts) receipt.accounts = DeSerializeFromJsonString(receipt.accounts)
-      if (receipt.receipt) receipt.receipt = DeSerializeFromJsonString(receipt.receipt)
-      if (receipt.result) receipt.result = DeSerializeFromJsonString(receipt.result)
-      if (receipt.sign) receipt.sign = DeSerializeFromJsonString(receipt.sign)
+      if (receipt.appReceiptData) receipt.appReceiptData = DeSerializeFromJsonString(receipt.appReceiptData)
+      if (receipt.appliedReceipt) receipt.appliedReceipt = DeSerializeFromJsonString(receipt.appliedReceipt)
     }
     if (config.VERBOSE) {
       Logger.mainLogger.debug('Receipt receiptId', receipt)
     }
-    return receipt as unknown as Receipt
+    return receipt as Receipt
   } catch (e) {
     Logger.mainLogger.error(e)
   }
@@ -96,16 +156,15 @@ export async function queryReceiptByReceiptId(receiptId: string): Promise<Receip
 export async function queryLatestReceipts(count: number): Promise<Receipt[] | void> {
   try {
     const sql = `SELECT * FROM receipts ORDER BY cycle DESC, timestamp DESC LIMIT ${count ? count : 100}`
-    const receipts = (await db.all(sql)) as ReceiptFromDB[]
+    const receipts = (await db.all(sql)) as DBReceipt[]
     if (receipts.length > 0) {
-      receipts.forEach((receipt: ReceiptFromDB) => {
+      receipts.forEach((receipt: DBReceipt) => {
         if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
         if (receipt.beforeStateAccounts)
           receipt.beforeStateAccounts = DeSerializeFromJsonString(receipt.beforeStateAccounts)
         if (receipt.accounts) receipt.accounts = DeSerializeFromJsonString(receipt.accounts)
-        if (receipt.receipt) receipt.receipt = DeSerializeFromJsonString(receipt.receipt)
-        if (receipt.result) receipt.result = DeSerializeFromJsonString(receipt.result)
-        if (receipt.sign) receipt.sign = DeSerializeFromJsonString(receipt.sign)
+        if (receipt.appReceiptData) receipt.appReceiptData = DeSerializeFromJsonString(receipt.appReceiptData)
+        if (receipt.appliedReceipt) receipt.appliedReceipt = DeSerializeFromJsonString(receipt.appliedReceipt)
       })
     }
     if (config.VERBOSE) {
@@ -123,14 +182,13 @@ export async function queryReceipts(skip = 0, limit = 10000): Promise<Receipt[] 
     const sql = `SELECT * FROM receipts ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
     receipts = await db.all(sql)
     if (receipts.length > 0) {
-      receipts.forEach((receipt: ReceiptFromDB) => {
+      receipts.forEach((receipt: DBReceipt) => {
         if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
         if (receipt.beforeStateAccounts)
           receipt.beforeStateAccounts = DeSerializeFromJsonString(receipt.beforeStateAccounts)
         if (receipt.accounts) receipt.accounts = DeSerializeFromJsonString(receipt.accounts)
-        if (receipt.receipt) receipt.receipt = DeSerializeFromJsonString(receipt.receipt)
-        if (receipt.result) receipt.result = DeSerializeFromJsonString(receipt.result)
-        if (receipt.sign) receipt.sign = DeSerializeFromJsonString(receipt.sign)
+        if (receipt.appReceiptData) receipt.appReceiptData = DeSerializeFromJsonString(receipt.appReceiptData)
+        if (receipt.appliedReceipt) receipt.appliedReceipt = DeSerializeFromJsonString(receipt.appliedReceipt)
       })
     }
   } catch (e) {
@@ -158,10 +216,7 @@ export async function queryReceiptCount(): Promise<number> {
   return receipts
 }
 
-export async function queryReceiptCountByCycles(
-  start: number,
-  end: number
-): Promise<Array<{ cycle: number; receipts: number }> | void> {
+export async function queryReceiptCountByCycles(start: number, end: number): Promise<ReceiptsCountByCycle[]> {
   let receipts
   try {
     const sql = `SELECT cycle, COUNT(*) FROM receipts GROUP BY cycle HAVING cycle BETWEEN ? AND ? ORDER BY cycle ASC`
@@ -184,7 +239,7 @@ export async function queryReceiptCountByCycles(
 export async function queryReceiptCountBetweenCycles(
   startCycleNumber: number,
   endCycleNumber: number
-): Promise<number | void> {
+): Promise<number> {
   let receipts
   try {
     const sql = `SELECT COUNT(*) FROM receipts WHERE cycle BETWEEN ? AND ?`
@@ -205,20 +260,19 @@ export async function queryReceiptsBetweenCycles(
   limit = 10000,
   startCycleNumber: number,
   endCycleNumber: number
-): Promise<Receipt[] | void> {
+): Promise<Receipt[]> {
   let receipts
   try {
     const sql = `SELECT * FROM receipts WHERE cycle BETWEEN ? AND ? ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
     receipts = await db.all(sql, [startCycleNumber, endCycleNumber])
     if (receipts.length > 0) {
-      receipts.forEach((receipt: ReceiptFromDB) => {
+      receipts.forEach((receipt: DBReceipt) => {
         if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
         if (receipt.beforeStateAccounts)
           receipt.beforeStateAccounts = DeSerializeFromJsonString(receipt.beforeStateAccounts)
         if (receipt.accounts) receipt.accounts = DeSerializeFromJsonString(receipt.accounts)
-        if (receipt.receipt) receipt.receipt = DeSerializeFromJsonString(receipt.receipt)
-        if (receipt.result) receipt.result = DeSerializeFromJsonString(receipt.result)
-        if (receipt.sign) receipt.sign = DeSerializeFromJsonString(receipt.sign)
+        if (receipt.appReceiptData) receipt.appReceiptData = DeSerializeFromJsonString(receipt.appReceiptData)
+        if (receipt.appliedReceipt) receipt.appliedReceipt = DeSerializeFromJsonString(receipt.appliedReceipt)
       })
     }
   } catch (e) {

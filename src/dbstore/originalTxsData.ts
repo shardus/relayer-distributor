@@ -13,12 +13,12 @@ export interface OriginalTxData {
   sign: Signature
 }
 
-export interface CycleCount {
+export interface OriginalTxsDataCountByCycle {
   cycle: number
   originalTxsData: number
 }
 
-type DbOriginalTxData = OriginalTxData & {
+export type DBOriginalTxData = OriginalTxData & {
   originalTxData: string
   sign: string
 }
@@ -103,7 +103,7 @@ export async function queryOriginalTxsData(
     }
     sql += sqlSuffix
     originalTxsData = await db.all(sql, values)
-    originalTxsData.forEach((originalTxData: DbOriginalTxData) => {
+    originalTxsData.forEach((originalTxData: DBOriginalTxData) => {
       if (originalTxData.originalTxData)
         originalTxData.originalTxData = DeSerializeFromJsonString(originalTxData.originalTxData)
       if (originalTxData.sign) originalTxData.sign = DeSerializeFromJsonString(originalTxData.sign)
@@ -120,7 +120,7 @@ export async function queryOriginalTxsData(
 export async function queryOriginalTxDataByTxId(txId: string): Promise<OriginalTxData | null> {
   try {
     const sql = `SELECT * FROM originalTxsData WHERE txId=?`
-    const originalTxData = (await db.get(sql, [txId])) as DbOriginalTxData
+    const originalTxData = (await db.get(sql, [txId])) as DBOriginalTxData
     if (originalTxData) {
       if (originalTxData.originalTxData)
         originalTxData.originalTxData = DeSerializeFromJsonString(originalTxData.originalTxData)
@@ -136,7 +136,10 @@ export async function queryOriginalTxDataByTxId(txId: string): Promise<OriginalT
   return null
 }
 
-export async function queryOriginalTxDataCountByCycles(start: number, end: number): Promise<CycleCount[]> {
+export async function queryOriginalTxDataCountByCycles(
+  start: number,
+  end: number
+): Promise<OriginalTxsDataCountByCycle[]> {
   let originalTxsData
   try {
     const sql = `SELECT cycle, COUNT(*) FROM originalTxsData GROUP BY cycle HAVING cycle BETWEEN ? AND ? ORDER BY cycle ASC`
@@ -156,14 +159,14 @@ export async function queryOriginalTxDataCountByCycles(start: number, end: numbe
   return originalTxsData
 }
 
-export async function queryLatestOriginalTxs(count: number): Promise<DbOriginalTxData[] | void> {
+export async function queryLatestOriginalTxs(count: number): Promise<DBOriginalTxData[] | void> {
   try {
     const sql = `SELECT * FROM originalTxsData ORDER BY cycle DESC, timestamp DESC LIMIT ${
       count ? count : 100
     }`
-    const originalTxs = (await db.all(sql)) as DbOriginalTxData[]
+    const originalTxs = (await db.all(sql)) as DBOriginalTxData[]
     if (originalTxs.length > 0) {
-      originalTxs.forEach((tx: DbOriginalTxData) => {
+      originalTxs.forEach((tx: DBOriginalTxData) => {
         if (tx.originalTxData) tx.originalTxData = DeSerializeFromJsonString(tx.originalTxData)
         if (tx.sign) tx.sign = DeSerializeFromJsonString(tx.sign)
       })
