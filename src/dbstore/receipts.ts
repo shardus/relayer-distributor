@@ -13,7 +13,7 @@ import * as Account from '../dbstore/accounts'
  */
 export interface ArchiverReceipt {
   tx: {
-    originalTxData: OpaqueTransaction
+    originalTxData: object
     txId: string
     timestamp: number
   }
@@ -24,13 +24,6 @@ export interface ArchiverReceipt {
   appliedReceipt: AppliedReceipt2
   executionShardKey: string
 }
-
-type ObjectAlias = object
-/**
- * OpaqueTransaction is the way shardus should see transactions internally. it should not be able to mess with parameters individually
- */
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface OpaqueTransaction extends ObjectAlias {}
 
 export type AppliedVote = {
   txid: string
