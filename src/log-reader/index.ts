@@ -121,6 +121,7 @@ class DataLogReader extends EventEmitter {
             start: currentSize,
             end: stats.size,
           })
+          const lastSize = currentSize
           currentSize = stats.size
 
           const rl = readline.createInterface({
@@ -153,7 +154,8 @@ class DataLogReader extends EventEmitter {
                 this.emit(`${this.dataName}-data`, parse)
               }
             } catch (e) {
-              /* prettier-ignore */ if (config.VERBOSE) console.log('data is not complete!')
+              /* prettier-ignore */ if (config.VERBOSE) console.error('❌ Damaged line Detected! >: ', data)
+              currentSize = lastSize
             }
           })
           rl.on('error', (err) => {
