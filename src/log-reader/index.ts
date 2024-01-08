@@ -58,8 +58,6 @@ class DataLogReader extends EventEmitter {
           if (data.includes('End: Number of entries: ')) {
             foundEndNumberofEntriesLine = true
           } else {
-            // commented below line b/c it causes lint error(parse is never used)
-            // const parse = JSON.parse(data)
             startEntries++
           }
           /* prettier-ignore */ if (config.VERBOSE) console.log(this.dataName, 'startEntries', startEntries)
@@ -122,6 +120,7 @@ class DataLogReader extends EventEmitter {
             end: stats.size,
           })
           const lastSize = currentSize
+          const lastTotalNumberOfEntries = totalNumberOfEntries
           currentSize = stats.size
 
           const rl = readline.createInterface({
@@ -154,8 +153,9 @@ class DataLogReader extends EventEmitter {
                 this.emit(`${this.dataName}-data`, parse)
               }
             } catch (e) {
-              /* prettier-ignore */ if (config.VERBOSE) console.error('❌ Damaged line Detected! >: ', data)
+              console.error('❌ Damaged line Detected! >: ', data)
               currentSize = lastSize
+              totalNumberOfEntries = lastTotalNumberOfEntries
             }
           })
           rl.on('error', (err) => {
