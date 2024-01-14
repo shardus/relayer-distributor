@@ -1,4 +1,3 @@
-import { Signature } from '@shardus/crypto-utils'
 import * as db from './sqlite3storage'
 import { extractValues, extractValuesFromArray } from './sqlite3storage'
 import * as Logger from '../Logger'
@@ -10,7 +9,7 @@ export interface OriginalTxData {
   timestamp: number
   cycle: number
   originalTxData: unknown
-  sign: Signature
+  // sign: Signature
 }
 
 export interface OriginalTxsDataCountByCycle {
@@ -20,7 +19,6 @@ export interface OriginalTxsDataCountByCycle {
 
 export type DBOriginalTxData = OriginalTxData & {
   originalTxData: string
-  sign: string
 }
 
 export async function insertOriginalTxData(OriginalTxData: OriginalTxData): Promise<void> {
@@ -106,7 +104,6 @@ export async function queryOriginalTxsData(
     originalTxsData.forEach((originalTxData: DBOriginalTxData) => {
       if (originalTxData.originalTxData)
         originalTxData.originalTxData = DeSerializeFromJsonString(originalTxData.originalTxData)
-      if (originalTxData.sign) originalTxData.sign = DeSerializeFromJsonString(originalTxData.sign)
     })
   } catch (e) {
     console.log(e)
@@ -124,7 +121,6 @@ export async function queryOriginalTxDataByTxId(txId: string): Promise<OriginalT
     if (originalTxData) {
       if (originalTxData.originalTxData)
         originalTxData.originalTxData = DeSerializeFromJsonString(originalTxData.originalTxData)
-      if (originalTxData.sign) originalTxData.sign = DeSerializeFromJsonString(originalTxData.sign)
     }
     if (config.VERBOSE) {
       Logger.mainLogger.debug('OriginalTxData txId', originalTxData)
@@ -168,7 +164,6 @@ export async function queryLatestOriginalTxs(count: number): Promise<DBOriginalT
     if (originalTxs.length > 0) {
       originalTxs.forEach((tx: DBOriginalTxData) => {
         if (tx.originalTxData) tx.originalTxData = DeSerializeFromJsonString(tx.originalTxData)
-        if (tx.sign) tx.sign = DeSerializeFromJsonString(tx.sign)
       })
     }
     if (config.VERBOSE) {
