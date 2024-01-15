@@ -1,144 +1,99 @@
-import { join } from 'path'
-import { config } from '../Config'
-const childPath = join(__dirname, 'child')
-import { fork, ChildProcess } from 'child_process'
-import { Socket } from 'net'
+import * as url from 'url'
+import * as net from 'net'
+import * as http from 'http'
+import * as Logger from '../Logger'
 
-const { MAX_CLIENTS_PER_CHILD } = config
+import { config } from '../Config'
+import fastifyCors from '@fastify/cors'
+import type { Worker } from 'node:cluster'
+import { handleSocketRequest } from './child'
+import Fastify, { FastifyInstance } from 'fastify'
+import fastifyRateLimit from '@fastify/rate-limit'
+import { registerRoutes, validateRequestData } from '../api'
 
 interface ClientRequestDataInterface {
   header: object
-  socket: Socket
+  socket: net.Socket
 }
 
-interface ChildMessageInterface {
-  type: string
-  data: {
-    err: string
-    pid: number
-  }
-}
+let httpServer: http.Server
+export const workerClientMap = new Map<Worker, string[]>()
 
-type childProcessId = number
-
-export const childProcessMap = new Map<childProcessId, ChildProcess>()
-export const childClientMap = new Map<ChildProcess, string[]>()
-export const socketClientMap = new Map<string, childProcessId>()
-
-interface ClientInterface {
-  Process_ID: number
-  Socket_IDs: string[]
-}
-
-export const showAllProcesses = (): void => {
-  const clients: ClientInterface[] = []
-  for (const [key, value] of childClientMap.entries()) {
-    clients.push({ Process_ID: key.pid, Socket_IDs: value })
-  }
-  console.table(clients, ['Process_ID', 'Socket_IDs'])
-}
-
-const spinUpChildProcess = (clientKey: string, clientRequestData: ClientRequestDataInterface): void => {
+const spinUpWorkerProcess = (clientKey: string, clientRequestData: ClientRequestDataInterface): void => {
   try {
-    const child = fork(childPath)
-    child.send({ ...clientRequestData.header }, clientRequestData.socket)
-    childProcessMap.set(child.pid!, child)
-    childClientMap.set(child, [clientKey])
-    socketClientMap.set(clientKey, child.pid!)
-    registerChildMessageListener(child)
+    handleSocketRequest({ ...clientRequestData.header, socket: clientRequestData.socket, clientKey })
   } catch (e) {
-    throw new Error(`Error in spinUpChildProcess(): ${e}`)
+    throw new Error(`Error in spinUpWorkerProcess(): ${e}`)
   }
 }
 
-export const assignChildProcessToClient = (
-  clientKey: string,
-  clientRequestData: ClientRequestDataInterface
-): void => {
-  const numberofActiveChildProcesses = childProcessMap.size
-  if (numberofActiveChildProcesses === 0) {
-    spinUpChildProcess(clientKey, clientRequestData)
-    return
+export const initHttpServer = async (worker: Worker): Promise<void> => {
+  const serverFactory = (
+    handler: (req: http.IncomingMessage, res: http.ServerResponse) => void
+  ): http.Server => {
+    httpServer = http.createServer((req, res) => {
+      handler(req, res)
+    })
+    return httpServer
   }
 
-  const childProcessId = socketClientMap.get(clientKey)
-  if (childProcessId) {
-    const childProcess = childProcessMap.get(childProcessId)
-    childProcess?.send({ ...clientRequestData.header }, clientRequestData.socket)
-    return
-  }
+  const fastifyServer = Fastify({ serverFactory })
+  await fastifyServer.register(fastifyCors)
+  await fastifyServer.register(fastifyRateLimit, {
+    global: true,
+    max: config.RATE_LIMIT,
+    timeWindow: 10,
+    allowList: ['127.0.0.1', '0.0.0.0'], // Excludes local IPs from rate limits
+  })
 
-  // Checking if any running child process has less than MAX_CLIENTS_PER_CHILD clients
-  for (const childProcess of childProcessMap.values()) {
-    const clients = childClientMap.get(childProcess)
-
-    if (clients!.length! < MAX_CLIENTS_PER_CHILD) {
-      childProcess.send({ ...clientRequestData.header }, clientRequestData.socket)
-      clients?.push(clientKey)
-      childClientMap.set(childProcess, clients!)
+  // Register API routes
+  registerRoutes(fastifyServer as FastifyInstance<http.Server, http.IncomingMessage, http.ServerResponse>)
+  console.log('Inside HTTP Server')
+  initSocketServer(httpServer, worker)
+  // Start server and bind to port on all interfaces
+  fastifyServer.ready(() => {
+    httpServer.listen(config.DISTRIBUTOR_PORT, () => {
+      console.log(`Distributor-Server (${process.pid}) listening on port ${config.DISTRIBUTOR_PORT}.`)
+      Logger.mainLogger.debug(`Worker Process (${process.pid}) Started .`)
       return
-    }
-  }
+    })
 
-  // If no child process has less than MAX_CLIENTS_PER_CHILD clients, then create a new child process
-  spinUpChildProcess(clientKey, clientRequestData)
-}
-
-const removeSocketClient = (clientId: string): void => {
-  socketClientMap.delete(clientId)
-  for (const [childProcess, clients] of childClientMap.entries()) {
-    const index = clients.findIndex((id) => id === clientId)
-    if (index > -1) {
-      clients.splice(index, 1)
-      childClientMap.set(childProcess, clients)
-      console.log(`Client (${clientId}) disconnected from Child Process (${childProcess.pid})`)
-      showAllProcesses()
-      // Check if the child process has no clients, then terminate it
-      if (clients.length === 0) terminateProcess(childProcess.pid!)
-      return
-    }
-  }
-}
-
-const registerChildMessageListener = (child: ChildProcess): void => {
-  child.on('message', ({ type, data }: ChildMessageInterface) => {
-    if (type === 'client_close') {
-      console.log('Client Connection Termination Event Received, ID: ', data)
-      removeSocketClient(data.pid.toString())
-    }
-    if (type === 'child_close') {
-      console.log('Terminating Child Process due to error: ', data.err)
-      terminateProcess(data.pid)
-    }
+    httpServer.on('error', (err) => {
+      Logger.mainLogger.error('Distributor failed to start.', err)
+      process.exit(1)
+    })
   })
 }
 
-export const getChildProcessForClient = (clientId: string): ChildProcess | undefined => {
-  const childProcessId = socketClientMap.get(clientId)
-  if (!childProcessId) throw new Error(`Child process associated with Client: ${clientId} not found.`)
-  const childProcess = childProcessMap.get(childProcessId)
-  if (!childProcess) throw new Error(`Child process with PID: ${childProcessId} not found.`)
-  return childProcess
-}
+const initSocketServer = async (httpServer: http.Server, worker: Worker): Promise<void> => {
+  // Handles incoming upgrade requests from clients (to upgrade to a Socket connection)
+  httpServer.on('upgrade', (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => {
+    console.log(`>>> Received Socket Request @ ${process.pid}`)
+    const queryObject = url.parse(req.url!, true).query
+    const decodedData = decodeURIComponent(queryObject.data as string)
+    const clientData = JSON.parse(decodedData)
 
-export const getChildProcess = (pid: number): ChildProcess | undefined => {
-  const child = childProcessMap.get(pid)
-  if (!child) throw new Error(`Child process with PID: ${pid} not found.`)
-  return child
-}
+    const auth = validateRequestData(clientData, {
+      collectorInfo: 'o',
+      sender: 's',
+      sign: 'o',
+    })
+    if (auth.success) {
+      const clientKey = clientData.sender
+      spinUpWorkerProcess(clientKey, {
+        header: { headers: req.headers, method: req.method, head, clientKey },
+        socket,
+      })
+    } else {
+      Logger.mainLogger.warn(`Unauthorized Client Request from ${req.headers.host}, Reason: ${auth.error}`)
 
-const terminateProcess = (pid: number): void => {
-  try {
-    const childProcess = getChildProcess(pid)
-    if (childProcess?.kill()) {
-      childProcessMap.delete(pid)
-      childClientMap.delete(childProcess!)
-      console.log(`❌ Child process with PID: ${pid} Terminated.`)
+      socket.write('HTTP/1.1 401 Unauthorized\r\n')
+      socket.write('Content-Type: text/plain\r\n')
+      socket.write('Connection: close\r\n')
+      socket.write('Unauthorized: Authentication failed\r\n')
+
+      socket.end() // Close the socket
+      return
     }
-    showAllProcesses()
-    if (childProcessMap.size === 0) console.log(`--> No Active child processes <-`)
-  } catch (e) {
-    console.error('Error in terminateProcess():', e)
-    return
-  }
+  })
 }

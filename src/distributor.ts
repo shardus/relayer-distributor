@@ -1,113 +1,74 @@
+import { cpus } from 'os'
 import { join } from 'path'
-import * as url from 'url'
-import * as utils from './utils'
-import fastify, { FastifyInstance } from 'fastify'
-import fastifyCors from '@fastify/cors'
-import fastifyRateLimit from '@fastify/rate-limit'
-import { overrideDefaultConfig, config, Subscriber } from './Config'
-import * as http from 'http'
-import * as dbstore from './dbstore'
 import * as Logger from './Logger'
-import * as net from 'net'
+import * as dbstore from './dbstore'
+import type { Worker } from 'cluster'
+import * as clusterModule from 'cluster'
+import { initHttpServer } from './child-process'
+import { setHashKey, initLogger } from './utils'
+import { config, overrideDefaultConfig } from './Config'
 
-import { registerRoutes, validateRequestData } from './api'
-import { assignChildProcessToClient, showAllProcesses, getChildProcessForClient } from './child-process'
+import {
+  workerClientMap,
+  workerProcessMap,
+  refreshSubscribers,
+  updateConfigAndSubscriberList,
+  registerWorkerMessageListener,
+} from './distributor/utils'
 
-let httpServer: http.Server
-
-export const distributorSubscribers: Map<string, Subscriber> = new Map()
-
+const cluster = clusterModule as unknown as clusterModule.Cluster
 // Override default config params from config file, env vars, and cli args
 const file = join(process.cwd(), 'distributor-config.json')
-const env = process.env
-const args = process.argv
+const { argv, env } = process
 
-export let socketServer: SocketIO.Server
-
-async function start(): Promise<void> {
-  overrideDefaultConfig(file, env, args)
+const initDistributor = async (): Promise<void> => {
+  // Common logic for both parent and worker processes
+  overrideDefaultConfig(file, env, argv)
 
   // Set crypto hash keys from config
   const hashKey = config.DISTRIBUTOR_HASH_KEY
-  utils.setHashKey(hashKey)
-  utils.initLogger()
-
-  await dbstore.initializeDB(config)
-
+  setHashKey(hashKey)
+  initLogger()
+  addSigListeners()
+  updateConfigAndSubscriberList()
   // Refresh the subscribers
-  if (config.limitToSubscribersOnly) refreshSubscribers()
+  cluster.schedulingPolicy = cluster.SCHED_NONE
+  if (cluster.isPrimary) {
+    // Primary/Parent Process Logic
+    Logger.mainLogger.debug(`Distributor Master Process (${process.pid}) Started`)
+    for (let i = 0; i < cpus().length; i++) {
+      const worker: Worker = cluster.fork()
+      workerClientMap.set(worker, [])
+      workerProcessMap.set(worker.process.pid, worker)
+      registerWorkerMessageListener(worker)
+      if (config.limitToSubscribersOnly) refreshSubscribers()
+      console.log(`⛏️ Worker ${worker.process.pid} started`)
+    }
 
-  const serverFactory = (
-    handler: (req: http.IncomingMessage, res: http.ServerResponse) => void
-  ): http.Server => {
-    httpServer = http.createServer((req, res) => {
-      handler(req, res)
+    cluster.on('exit', (worker: Worker) => {
+      Logger.mainLogger.debug(`Worker Process (${worker}) Terminated`)
     })
-    return httpServer
+  } else {
+    // Worker Process Logic
+    await dbstore.initializeDB(config)
+    const { worker } = cluster
+    await initHttpServer(worker)
   }
-
-  const fastifyServer = fastify({ serverFactory })
-  await fastifyServer.register(fastifyCors)
-  await fastifyServer.register(fastifyRateLimit, {
-    global: true,
-    max: config.RATE_LIMIT,
-    timeWindow: 10,
-    allowList: ['127.0.0.1', '0.0.0.0'], // Excludes local IPs from rate limits
-  })
-
-  // Handles incoming upgrade requests from clients (to upgrade to a Socket connection)
-  httpServer.on('upgrade', (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => {
-    const queryObject = url.parse(req.url!, true).query
-    const decodedData = decodeURIComponent(queryObject.data as string)
-    const clientData = JSON.parse(decodedData)
-
-    const auth = validateRequestData(clientData, {
-      collectorInfo: 'o',
-      sender: 's',
-      sign: 'o',
-    })
-    if (auth.success) {
-      const clientKey = clientData.sender ?? undefined
-      if (!clientKey)
-        throw new Error(`No client/public key found in upgrade request from Client @ ${req.headers.host}`)
-
-      console.log('\n Assigning Child Process to Client...')
-
-      assignChildProcessToClient(clientKey, {
-        header: { headers: req.headers, method: req.method, head, clientKey },
-        socket,
-      })
-      showAllProcesses()
-    } else console.log(`Unauthorized Client Request from ${req.headers.host}, Reason: ${auth.error}`)
-  })
-
-  // Register API routes
-  registerRoutes(fastifyServer as FastifyInstance<http.Server, http.IncomingMessage, http.ServerResponse>)
-
-  // Start server and bind to port on all interfaces
-  fastifyServer.ready(() => {
-    httpServer.listen(config.DISTRIBUTOR_PORT, () => {
-      console.log(`Distributor-Server listening on port ${config.DISTRIBUTOR_PORT}!`)
-      Logger.mainLogger.debug('Listening', config.DISTRIBUTOR_PORT)
-      Logger.mainLogger.debug('Distributor has started.')
-      addSigListeners()
-    })
-
-    httpServer.on('error', (err) => {
-      Logger.mainLogger.error('Distributor failed to start.', err)
-      process.exit(1)
-    })
-  })
 }
 
 const addSigListeners = (): void => {
   process.on('SIGUSR1', async () => {
-    Logger.mainLogger.debug('DETECTED SIGUSR1 SIGNAL')
     // Reload the distributor-config.json
-    overrideDefaultConfig(file, env, args)
+    overrideDefaultConfig(file, env, argv)
     Logger.mainLogger.debug('Config reloaded', config)
-    // Refresh the subscribers
-    if (config.limitToSubscribersOnly) refreshSubscribers()
+    Logger.mainLogger.debug('DETECTED SIGUSR1 SIGNAL @: ', process.pid)
+    if (cluster.isPrimary) {
+      // Check for expired subscribers in the updated config
+      if (config.limitToSubscribersOnly) refreshSubscribers()
+    } else {
+      // Refresh the list of subscribers in every worker process
+      updateConfigAndSubscriberList()
+    }
   })
   process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception in Distributor: ', error)
@@ -115,26 +76,4 @@ const addSigListeners = (): void => {
   Logger.mainLogger.debug('Registered signal listeners.')
 }
 
-/* eslint-disable security/detect-object-injection */
-const refreshSubscribers = (): void => {
-  const subscribers: Subscriber[] = config.subscribers
-  for (let i = 0; i < subscribers.length; i++) {
-    distributorSubscribers.set(subscribers[i].publicKey, subscribers[i])
-  }
-  Logger.mainLogger.debug('Subscribers refreshed', distributorSubscribers)
-  setInterval(() => {
-    console.log('Checking for expired subscribers...')
-    for (let i = 0; i < subscribers.length; i++) {
-      // Subscribers with expirationTimestamp of 0 are permanent subscribers
-      if (subscribers[i].expirationTimestamp !== 0 && subscribers[i].expirationTimestamp < Date.now()) {
-        Logger.mainLogger.debug(`❌ Removing Expired Subscriber: ${subscribers[i].publicKey}`)
-        const childProcess = getChildProcessForClient(subscribers[i].publicKey)
-        childProcess?.send({ type: 'remove_subscriber', data: subscribers[i].publicKey })
-        subscribers.splice(i, 1)
-      }
-    }
-  }, 60_000)
-}
-/* eslint-enable security/detect-object-injection */
-
-start()
+initDistributor()

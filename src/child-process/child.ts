@@ -9,6 +9,11 @@ const FILE = join(process.cwd(), 'distributor-config.json')
 overrideDefaultConfig(FILE, process.env, process.argv)
 Crypto.setCryptoHashKey(config.DISTRIBUTOR_HASH_KEY)
 
+enum SocketCloseCodes {
+  NEW_CONNECTION_CODE = 1000,
+  SUBSCRIBER_EXPIRATION_CODE,
+}
+
 const NEW_CONNECTION_CODE = 3000
 
 const wss = new WebSocket.Server({ noServer: true })
@@ -18,71 +23,73 @@ const socketClientMap = new Map<string, WebSocket.WebSocket>()
 //interface for dataProp
 interface DataPropInterface {
   headers?: Record<string, string>
+  socket: WebSocket
   head?: Buffer
   clientKey?: string
   type?: string
   data?: string
 }
 
-process.on('message', (dataProp: DataPropInterface, socket: IncomingMessage) => {
+export const handleSocketRequest = (dataProp: DataPropInterface): void => {
   if (dataProp.headers) {
-    wss.handleUpgrade(dataProp, socket, dataProp.head, (ws: WebSocket.WebSocket) => {
+    wss.handleUpgrade(dataProp, dataProp.socket, dataProp.head, (ws: WebSocket.WebSocket) => {
       const clientId = dataProp.clientKey
       if (socketClientMap.has(clientId)) {
-        socketClientMap.get(clientId).close(NEW_CONNECTION_CODE, 'New Connection Established')
+        socketClientMap.get(clientId).close(1000)
+        socketClientMap.delete(clientId)
       }
       socketClientMap.set(clientId, ws)
-      // Sending Client-ID to Socket Client
-      ws.send(
-        JSON.stringify({
-          type: 'client_init',
-          data: clientId,
-        })
-      )
-
-      // Listening to messages from Socket Client
-      ws.on('message', (msg: WebSocket.Data) => {
-        const clientMsg = JSON.parse(msg.toString('utf8'))
-        if (clientMsg.type && clientMsg.data) {
-          switch (clientMsg.type) {
-            case 'client_init':
-              {
-                if (clientMsg.data === 'CONNECTED') {
-                  console.log(`✅Client (${clientId}) Connected with Child Process ${process.pid}`)
-                }
-              }
-              break
-            default:
-              {
-                console.warn('Unknown Message Type Received from Client: ', clientMsg)
-              }
-              break
-          }
-        } else console.log('Basic Client Msg: ', msg.toString('utf8'))
+      registerParentProcessListener()
+      // Sending Client-ID to Parent Process for managing subscribers
+      process.send!({
+        type: 'client_connected',
+        data: clientId,
       })
 
       ws.on('close', (code) => {
-        if (code === NEW_CONNECTION_CODE) {
-          console.log(`❌ Closing previous connection with Client (${clientId})`)
-          return
+        switch (code) {
+          case SocketCloseCodes.NEW_CONNECTION_CODE:
+            console.log(`❌ Closing previous connection with Client (${clientId})`)
+            process.send!({
+              type: 'client_close',
+              data: clientId,
+            })
+            break
+          case SocketCloseCodes.SUBSCRIBER_EXPIRATION_CODE:
+            console.log(`❌ Expired Subscriber (${clientId}) Closed.`)
+            process.send!({
+              type: 'client_expired',
+              data: clientId,
+            })
+            break
+          default:
+            process.send!({
+              type: 'client_close',
+              data: clientId,
+            })
+            console.log(`❌ Connection with Client (${clientId}) Closed.`)
         }
-        socketClientMap.delete(clientId)
-        console.log(`❌ Connection with Client (${clientId}) Closed.`)
-        process.send!({
-          type: 'client_close',
-          data: clientId,
-        })
+        if (socketClientMap.has(clientId)) socketClientMap.delete(clientId)
       })
     })
   } else {
     if (dataProp.type === 'remove_subscriber') {
       const clientId = dataProp.data
-      socketClientMap.get(clientId).close()
+      socketClientMap.get(clientId).close(1)
       console.log(`❌ Expired Subscription -> Client (${clientId}) Removed.`)
     } else console.info('Unexpected Message Received in Child: ', dataProp)
   }
-})
+}
 
+const registerParentProcessListener = (): void => {
+  process.on('message', (dataProp: DataPropInterface, socket: IncomingMessage) => {
+    if (dataProp.type === 'remove_subscriber') {
+      const clientId = dataProp.data
+      socketClientMap.get(clientId).close()
+      console.log(`❌ Expired Subscription -> Client (${clientId}) Removed.`)
+    } else console.info('Unexpected Message Received in Child: ', dataProp)
+  })
+}
 const sendDataToAllClients = ({ signedData }: { signedData: Record<string, unknown> }): void => {
   for (const client of socketClientMap.values()) {
     client.send(
@@ -149,11 +156,7 @@ const registerDataReaderListeners = (reader: DataLogReader): void => {
         '❌ Path to the data-logs directory does not exist. Please check the path in the config file.\n Current Path: ',
         config.DATA_LOG_DIR
       )
-      // Terminate the Child Process
-      process.send!({
-        type: 'child_close',
-        data: { err: 'Invalid Path to the data-logs directory', pid: process.pid },
-      })
+      process.exit(0)
     } else {
       console.error('Error in Child Process: ', e.message, e.code)
     }

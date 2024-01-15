@@ -49,6 +49,11 @@ export interface Subscriber {
   subscriptionType: SubscriptionType
 }
 
+export interface ClientInterface {
+  Worker_PID: number
+  Client_PubKeys: string[]
+}
+
 export enum SubscriptionType {
   FIREHOSE = 'FIREHOSE',
   ACCOUNTS = 'ACCOUNTS',

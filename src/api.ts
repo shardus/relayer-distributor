@@ -10,7 +10,7 @@ import * as AccountDB from './dbstore/accounts'
 import * as TransactionDB from './dbstore/transactions'
 import * as ReceiptDB from './dbstore/receipts'
 import * as OriginalTxDB from './dbstore/originalTxsData'
-import { distributorSubscribers } from './distributor'
+import { distributorSubscribers } from './distributor/utils'
 
 const TXID_LENGTH = 64
 export const MAX_ACCOUNTS_PER_REQUEST = 1000
@@ -676,7 +676,14 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
     const totalReceipts = await ReceiptDB.queryReceiptCount()
     const totalOriginalTxs = await OriginalTxDB.queryOriginalTxDataCount()
     reply.send(
-      Crypto.sign({ totalCycles, totalAccounts, totalTransactions, totalReceipts, totalOriginalTxs })
+      Crypto.sign({
+        totalCycles,
+        totalAccounts,
+        totalTransactions,
+        totalReceipts,
+        totalOriginalTxs,
+        pid: process.pid,
+      })
     )
   })
 
