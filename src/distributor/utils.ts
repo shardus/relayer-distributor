@@ -37,6 +37,22 @@ export const registerWorkerMessageListener = (worker: Worker): void => {
 
       case 'client_connected':
         {
+          if (isClientAlreadyConnected(data.toString())) {
+            const workerForExistingClient = getWorkerForClient(data.toString())
+            if (workerForExistingClient.process.pid !== worker.process.pid) {
+              Logger.mainLogger.debug(
+                `❌ Closing previous connection of Client (${data}) with worker ${workerForExistingClient.process.pid}`
+              )
+              worker?.send({ type: 'close_duplicate_connection', data })
+              removeSocketClient(data.toString())
+            } else {
+              // Note: If the client is already connected to the same worker, then the worker will terminate the previous connection on its own.
+              Logger.mainLogger.debug(
+                `❌ Duplicate Connection Request of Client (${data}) on the same worker ${workerForExistingClient.process.pid}`
+              )
+              removeSocketClient(data.toString())
+            }
+          }
           Logger.mainLogger.debug(`✅ Client (${data}) connected with Worker: ${worker.process.pid}`)
           socketClientMap.set(data.toString(), worker.process.pid)
           const clients = workerClientMap.get(worker)
@@ -54,6 +70,10 @@ export const registerWorkerMessageListener = (worker: Worker): void => {
         if (type) Logger.mainLogger.debug('Unexpected Message Received From Worker: ', { type, data })
     }
   })
+}
+
+const isClientAlreadyConnected = (clientId: string): boolean => {
+  return socketClientMap.has(clientId)
 }
 
 export const updateConfigAndSubscriberList = (): void => {

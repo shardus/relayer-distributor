@@ -6,7 +6,7 @@ import * as Logger from '../Logger'
 import { config } from '../Config'
 import fastifyCors from '@fastify/cors'
 import type { Worker } from 'node:cluster'
-import { handleSocketRequest } from './child'
+import { handleSocketRequest, registerParentProcessListener } from './child'
 import Fastify, { FastifyInstance } from 'fastify'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { registerRoutes, validateRequestData } from '../api'
@@ -19,11 +19,11 @@ interface ClientRequestDataInterface {
 let httpServer: http.Server
 export const workerClientMap = new Map<Worker, string[]>()
 
-const spinUpWorkerProcess = (clientKey: string, clientRequestData: ClientRequestDataInterface): void => {
+const connectToSocketClient = (clientKey: string, clientRequestData: ClientRequestDataInterface): void => {
   try {
     handleSocketRequest({ ...clientRequestData.header, socket: clientRequestData.socket, clientKey })
   } catch (e) {
-    throw new Error(`Error in spinUpWorkerProcess(): ${e}`)
+    throw new Error(`Error in connectToSocketClient(): ${e}`)
   }
 }
 
@@ -48,8 +48,10 @@ export const initHttpServer = async (worker: Worker): Promise<void> => {
 
   // Register API routes
   registerRoutes(fastifyServer as FastifyInstance<http.Server, http.IncomingMessage, http.ServerResponse>)
-  console.log('Inside HTTP Server')
+
   initSocketServer(httpServer, worker)
+
+  registerParentProcessListener()
   // Start server and bind to port on all interfaces
   fastifyServer.ready(() => {
     httpServer.listen(config.DISTRIBUTOR_PORT, () => {
@@ -68,7 +70,6 @@ export const initHttpServer = async (worker: Worker): Promise<void> => {
 const initSocketServer = async (httpServer: http.Server, worker: Worker): Promise<void> => {
   // Handles incoming upgrade requests from clients (to upgrade to a Socket connection)
   httpServer.on('upgrade', (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => {
-    console.log(`>>> Received Socket Request @ ${process.pid}`)
     const queryObject = url.parse(req.url!, true).query
     const decodedData = decodeURIComponent(queryObject.data as string)
     const clientData = JSON.parse(decodedData)
@@ -80,19 +81,21 @@ const initSocketServer = async (httpServer: http.Server, worker: Worker): Promis
     })
     if (auth.success) {
       const clientKey = clientData.sender
-      spinUpWorkerProcess(clientKey, {
+      connectToSocketClient(clientKey, {
         header: { headers: req.headers, method: req.method, head, clientKey },
         socket,
       })
     } else {
-      Logger.mainLogger.warn(`Unauthorized Client Request from ${req.headers.host}, Reason: ${auth.error}`)
+      Logger.mainLogger.debug(
+        `❌ Unauthorized Client Request from ${req.headers.host}, Reason: ${auth.error}`
+      )
 
       socket.write('HTTP/1.1 401 Unauthorized\r\n')
       socket.write('Content-Type: text/plain\r\n')
       socket.write('Connection: close\r\n')
       socket.write('Unauthorized: Authentication failed\r\n')
 
-      socket.end() // Close the socket
+      socket.end()
       return
     }
   })

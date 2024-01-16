@@ -31,8 +31,7 @@ const initDistributor = async (): Promise<void> => {
   initLogger()
   addSigListeners()
   updateConfigAndSubscriberList()
-  // Refresh the subscribers
-  cluster.schedulingPolicy = cluster.SCHED_NONE
+
   if (cluster.isPrimary) {
     // Primary/Parent Process Logic
     Logger.mainLogger.debug(`Distributor Master Process (${process.pid}) Started`)
@@ -62,6 +61,7 @@ const addSigListeners = (): void => {
     overrideDefaultConfig(file, env, argv)
     Logger.mainLogger.debug('Config reloaded', config)
     Logger.mainLogger.debug('DETECTED SIGUSR1 SIGNAL @: ', process.pid)
+    console.log('DETECTED SIGUSR1 SIGNAL @: ', process.pid)
     if (cluster.isPrimary) {
       // Check for expired subscribers in the updated config
       if (config.limitToSubscribersOnly) refreshSubscribers()

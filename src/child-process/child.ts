@@ -10,11 +10,9 @@ overrideDefaultConfig(FILE, process.env, process.argv)
 Crypto.setCryptoHashKey(config.DISTRIBUTOR_HASH_KEY)
 
 enum SocketCloseCodes {
-  NEW_CONNECTION_CODE = 1000,
+  DUPLICATE_CONNECTION_CODE = 1000,
   SUBSCRIBER_EXPIRATION_CODE,
 }
-
-const NEW_CONNECTION_CODE = 3000
 
 const wss = new WebSocket.Server({ noServer: true })
 
@@ -35,11 +33,10 @@ export const handleSocketRequest = (dataProp: DataPropInterface): void => {
     wss.handleUpgrade(dataProp, dataProp.socket, dataProp.head, (ws: WebSocket.WebSocket) => {
       const clientId = dataProp.clientKey
       if (socketClientMap.has(clientId)) {
+        console.info('Duplicate Connection Found. Closing previous connection.')
         socketClientMap.get(clientId).close(1000)
-        socketClientMap.delete(clientId)
       }
       socketClientMap.set(clientId, ws)
-      registerParentProcessListener()
       // Sending Client-ID to Parent Process for managing subscribers
       process.send!({
         type: 'client_connected',
@@ -48,12 +45,9 @@ export const handleSocketRequest = (dataProp: DataPropInterface): void => {
 
       ws.on('close', (code) => {
         switch (code) {
-          case SocketCloseCodes.NEW_CONNECTION_CODE:
-            console.log(`❌ Closing previous connection with Client (${clientId})`)
-            process.send!({
-              type: 'client_close',
-              data: clientId,
-            })
+          case SocketCloseCodes.DUPLICATE_CONNECTION_CODE:
+            console.log(`❌ Connection with Duplicate Client (${clientId}) Terminated.`)
+            // Note: Since this event is triggered originally from the parent process, we don't need to send a message to the parent process
             break
           case SocketCloseCodes.SUBSCRIBER_EXPIRATION_CODE:
             console.log(`❌ Expired Subscriber (${clientId}) Closed.`)
@@ -72,22 +66,22 @@ export const handleSocketRequest = (dataProp: DataPropInterface): void => {
         if (socketClientMap.has(clientId)) socketClientMap.delete(clientId)
       })
     })
-  } else {
-    if (dataProp.type === 'remove_subscriber') {
-      const clientId = dataProp.data
-      socketClientMap.get(clientId).close(1)
-      console.log(`❌ Expired Subscription -> Client (${clientId}) Removed.`)
-    } else console.info('Unexpected Message Received in Child: ', dataProp)
   }
 }
 
-const registerParentProcessListener = (): void => {
-  process.on('message', (dataProp: DataPropInterface, socket: IncomingMessage) => {
-    if (dataProp.type === 'remove_subscriber') {
-      const clientId = dataProp.data
-      socketClientMap.get(clientId).close()
-      console.log(`❌ Expired Subscription -> Client (${clientId}) Removed.`)
-    } else console.info('Unexpected Message Received in Child: ', dataProp)
+export const registerParentProcessListener = (): void => {
+  process.on('message', (dataProp: DataPropInterface) => {
+    const clientId = dataProp.data
+    switch (dataProp.type) {
+      case 'remove_subscriber':
+        socketClientMap.get(clientId).close(1001)
+        console.log(`❌ Expired Subscription Client (${clientId}) Removed.`)
+        break
+      case 'close_duplicate_connection':
+        socketClientMap.get(clientId).close(1000)
+        console.log(`❌ Duplicate Client Connection Removed.`)
+        break
+    }
   })
 }
 const sendDataToAllClients = ({ signedData }: { signedData: Record<string, unknown> }): void => {
