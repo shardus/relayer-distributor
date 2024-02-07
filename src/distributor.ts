@@ -21,6 +21,9 @@ const cluster = clusterModule as unknown as clusterModule.Cluster
 const file = join(process.cwd(), 'distributor-config.json')
 const { argv, env } = process
 
+// const NUMBER_OF_WORKERS = cpus().length
+const NUMBER_OF_WORKERS = 2
+
 const initDistributor = async (): Promise<void> => {
   // Common logic for both parent and worker processes
   overrideDefaultConfig(file, env, argv)
@@ -35,7 +38,7 @@ const initDistributor = async (): Promise<void> => {
   if (cluster.isPrimary) {
     // Primary/Parent Process Logic
     Logger.mainLogger.debug(`Distributor Master Process (${process.pid}) Started`)
-    for (let i = 0; i < cpus().length; i++) {
+    for (let i = 0; i < NUMBER_OF_WORKERS; i++) {
       const worker: Worker = cluster.fork()
       workerClientMap.set(worker, [])
       workerProcessMap.set(worker.process.pid, worker)
