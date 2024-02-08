@@ -31,7 +31,7 @@ crypto.signObj(data, devAccount.secretKey, devAccount.publicKey)
 const dataString = encodeURIComponent(JSON.stringify(data))
 
 // Open a WebSocket connection to the server and include the data as a query parameter in the URL.
-const ws = new WebSocket(`ws://127.0.0.1:6000?data=${dataString}`)
+const ws = new WebSocket(`ws://127.0.0.1:6100?data=${dataString}`)
 
 // Log when the WebSocket connection is opened.
 ws.on('open', function open() {

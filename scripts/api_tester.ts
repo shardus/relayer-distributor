@@ -11,14 +11,16 @@ const devAccount = {
 }
 
 const data: any = {
-  count: 100,
+  count: 1,
   sender: devAccount.publicKey,
 }
 crypto.signObj(data, devAccount.secretKey, devAccount.publicKey)
-console.log(data)
+// console.log(data)
 
-// example endpoints... totalData or cycleinfo
-fetch('http://127.0.0.1:6000/cycleinfo', {
+//Update endpoints name ... totalData / cycleinfo / receipt / account / transaction
+fetch('http://127.0.0.1:6100/totalData', {
+  // fetch('http://127.0.0.1:6100/cycleinfo', {
+  // fetch('http://127.0.0.1:6100/receipt', {
   method: 'post',
   body: JSON.stringify(data),
   headers: { 'Content-Type': 'application/json' },
@@ -26,6 +28,7 @@ fetch('http://127.0.0.1:6000/cycleinfo', {
 })
   .then(async (res) => {
     if (res.ok) console.log(await res.json())
+    // if (res.ok) console.dir(await res.json(), { depth: null })
     else console.log(res.status)
   })
   .catch((err) => {
