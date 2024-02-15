@@ -21,7 +21,7 @@ In both cases the following steps are required to be followed:
 1. In the `distributor-config.json`:
 
 - Set **`ARCHIVER_DB_PATH`H** to the relative path of the database (that ends with `.sqlite3`) file of the archiver/collector service.
-- Set the **`DATA_LOG_DIR`** to the relative path of the directory where the archiver/collector service writes the data log files (path to the `/data-logs` folder).
+- Set the **`DATA_LOG_DIR`** to the relative path of the directory where the archiver/collector service writes the data log files (path to the `/data-logs/<archiverip_port>` folder).
 - If you do not wish to perform an auth check on the socket connection requests, then set the **limitToSubscribersOnly** to `false`. If not, then make sure you add the public key of the subscriber (or collector) to the **`subscribers`** array.
 
 2. Install all the dependencies:
