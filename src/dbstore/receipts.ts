@@ -20,7 +20,7 @@ export interface ArchiverReceipt {
   cycle: number
   beforeStateAccounts: Account.AccountCopy[]
   accounts: Account.AccountCopy[]
-  appReceiptData: unknown
+  appReceiptData: object & { accountId?: string; data: object }
   appliedReceipt: AppliedReceipt2
   executionShardKey: string
   globalModification: boolean
@@ -126,39 +126,29 @@ export async function bulkInsertReceipts(receipts: Receipt[]): Promise<void> {
   }
 }
 
-export async function queryReceiptByReceiptId(receiptId: string): Promise<Receipt | void> {
+export async function queryReceiptByReceiptId(receiptId: string, timestamp = 0): Promise<Receipt> {
   try {
-    const sql = `SELECT * FROM receipts WHERE receiptId=?`
-    const receipt = (await db.get(sql, [receiptId])) as DBReceipt
-    if (receipt) {
-      if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
-      if (receipt.beforeStateAccounts)
-        receipt.beforeStateAccounts = DeSerializeFromJsonString(receipt.beforeStateAccounts)
-      if (receipt.accounts) receipt.accounts = DeSerializeFromJsonString(receipt.accounts)
-      if (receipt.appReceiptData) receipt.appReceiptData = DeSerializeFromJsonString(receipt.appReceiptData)
-      if (receipt.appliedReceipt) receipt.appliedReceipt = DeSerializeFromJsonString(receipt.appliedReceipt)
-    }
+    const sql = `SELECT * FROM receipts WHERE receiptId=?` + (timestamp ? ` AND timestamp=?` : '')
+    const value = timestamp ? [receiptId, timestamp] : [receiptId]
+    const receipt = (await db.get(sql, value)) as DBReceipt
+    if (receipt) deserializeDBReceipt(receipt)
     if (config.VERBOSE) {
       Logger.mainLogger.debug('Receipt receiptId', receipt)
     }
     return receipt as Receipt
   } catch (e) {
     Logger.mainLogger.error(e)
+    return null
   }
 }
 
-export async function queryLatestReceipts(count: number): Promise<Receipt[] | void> {
+export async function queryLatestReceipts(count: number): Promise<Receipt[]> {
   try {
     const sql = `SELECT * FROM receipts ORDER BY cycle DESC, timestamp DESC LIMIT ${count ? count : 100}`
     const receipts = (await db.all(sql)) as DBReceipt[]
     if (receipts.length > 0) {
       receipts.forEach((receipt: DBReceipt) => {
-        if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
-        if (receipt.beforeStateAccounts)
-          receipt.beforeStateAccounts = DeSerializeFromJsonString(receipt.beforeStateAccounts)
-        if (receipt.accounts) receipt.accounts = DeSerializeFromJsonString(receipt.accounts)
-        if (receipt.appReceiptData) receipt.appReceiptData = DeSerializeFromJsonString(receipt.appReceiptData)
-        if (receipt.appliedReceipt) receipt.appliedReceipt = DeSerializeFromJsonString(receipt.appliedReceipt)
+        deserializeDBReceipt(receipt)
       })
     }
     if (config.VERBOSE) {
@@ -167,22 +157,18 @@ export async function queryLatestReceipts(count: number): Promise<Receipt[] | vo
     return receipts as unknown as Receipt[]
   } catch (e) {
     Logger.mainLogger.error(e)
+    return null
   }
 }
 
-export async function queryReceipts(skip = 0, limit = 10000): Promise<Receipt[] | void> {
-  let receipts
+export async function queryReceipts(skip = 0, limit = 10000): Promise<Receipt[]> {
+  let receipts: Receipt[] = []
   try {
     const sql = `SELECT * FROM receipts ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
-    receipts = await db.all(sql)
+    receipts = (await db.all(sql)) as DBReceipt[]
     if (receipts.length > 0) {
       receipts.forEach((receipt: DBReceipt) => {
-        if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
-        if (receipt.beforeStateAccounts)
-          receipt.beforeStateAccounts = DeSerializeFromJsonString(receipt.beforeStateAccounts)
-        if (receipt.accounts) receipt.accounts = DeSerializeFromJsonString(receipt.accounts)
-        if (receipt.appReceiptData) receipt.appReceiptData = DeSerializeFromJsonString(receipt.appReceiptData)
-        if (receipt.appliedReceipt) receipt.appliedReceipt = DeSerializeFromJsonString(receipt.appliedReceipt)
+        deserializeDBReceipt(receipt)
       })
     }
   } catch (e) {
@@ -255,18 +241,13 @@ export async function queryReceiptsBetweenCycles(
   startCycleNumber: number,
   endCycleNumber: number
 ): Promise<Receipt[]> {
-  let receipts
+  let receipts: Receipt[] = []
   try {
     const sql = `SELECT * FROM receipts WHERE cycle BETWEEN ? AND ? ORDER BY cycle ASC, timestamp ASC LIMIT ${limit} OFFSET ${skip}`
-    receipts = await db.all(sql, [startCycleNumber, endCycleNumber])
+    receipts = (await db.all(sql, [startCycleNumber, endCycleNumber])) as DBReceipt[]
     if (receipts.length > 0) {
       receipts.forEach((receipt: DBReceipt) => {
-        if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
-        if (receipt.beforeStateAccounts)
-          receipt.beforeStateAccounts = DeSerializeFromJsonString(receipt.beforeStateAccounts)
-        if (receipt.accounts) receipt.accounts = DeSerializeFromJsonString(receipt.accounts)
-        if (receipt.appReceiptData) receipt.appReceiptData = DeSerializeFromJsonString(receipt.appReceiptData)
-        if (receipt.appliedReceipt) receipt.appliedReceipt = DeSerializeFromJsonString(receipt.appliedReceipt)
+        deserializeDBReceipt(receipt)
       })
     }
   } catch (e) {
@@ -281,4 +262,15 @@ export async function queryReceiptsBetweenCycles(
     )
   }
   return receipts
+}
+
+function deserializeDBReceipt(receipt: DBReceipt): void {
+  if (receipt.tx) receipt.tx = DeSerializeFromJsonString(receipt.tx)
+  if (receipt.beforeStateAccounts)
+    receipt.beforeStateAccounts = DeSerializeFromJsonString(receipt.beforeStateAccounts)
+  if (receipt.accounts) receipt.accounts = DeSerializeFromJsonString(receipt.accounts)
+  if (receipt.appReceiptData) receipt.appReceiptData = DeSerializeFromJsonString(receipt.appReceiptData)
+  if (receipt.appliedReceipt) receipt.appliedReceipt = DeSerializeFromJsonString(receipt.appliedReceipt)
+  // globalModification is stored as 0 or 1 in the database, convert it to boolean
+  receipt.globalModification = (receipt.globalModification as unknown as number) === 1
 }
