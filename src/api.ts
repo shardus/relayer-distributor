@@ -80,15 +80,14 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         return
       }
       cycleInfo = (await CycleDB.queryLatestCycleRecords(count)) || []
-    } else if (start || end) {
-      const from = start ? start : 0
-      const to = end ? end : from + 100
+    } else if (start || start === 0) {
+      const from = start
+      const to = end ? end : from
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         Logger.mainLogger.error(`Invalid start and end counters`)
         reply.send(Crypto.sign({ success: false, error: `Invalid start and end counters` }))
         return
       }
-      // Limit the number of cycles to 100
       const cycleCount = to - from
       if (cycleCount > MAX_CYCLES_PER_REQUEST) {
         Logger.mainLogger.error(`Exceed maximum limit of ${MAX_CYCLES_PER_REQUEST} cycles`)
@@ -194,8 +193,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         const originalTx = (await OriginalTxDB.queryOriginalTxDataByTxId(txId)) as OriginalTxDB.OriginalTxData
         if (originalTx) (originalTxs as OriginalTxDB.OriginalTxData[]).push(originalTx)
       }
-    } else if (start || end) {
-      const from = start ? start : 0
+    } else if (start || start === 0) {
+      const from = start
       const to = end ? end : from
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
@@ -217,8 +216,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         return
       }
       originalTxs = await OriginalTxDB.queryOriginalTxsData(from, count + 1)
-    } else if (startCycle || endCycle) {
-      const from = startCycle ? startCycle : 0
+    } else if (startCycle || startCycle === 0) {
+      const from = startCycle
       const to = endCycle ? endCycle : from
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
@@ -332,8 +331,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         const receipt = await ReceiptDB.queryReceiptByReceiptId(txId)
         if (receipt) (receipts as ReceiptDB.Receipt[]).push(receipt)
       }
-    } else if (start || end) {
-      const from = start ? start : 0
+    } else if (start || start === 0) {
+      const from = start
       const to = end ? end : from
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
@@ -355,8 +354,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         return
       }
       receipts = (await ReceiptDB.queryReceipts(from, count + 1)) || []
-    } else if (startCycle || endCycle) {
-      const from = startCycle ? startCycle : 0
+    } else if (startCycle || startCycle === 0) {
+      const from = startCycle
       const to = endCycle ? endCycle : from
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
@@ -444,8 +443,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         return
       }
       accounts = (await AccountDB.queryLatestAccounts(count)) || []
-    } else if (start || end) {
-      const from = start ? start : 0
+    } else if (start || start === 0) {
+      const from = start
       const to = end ? end : from
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
@@ -470,8 +469,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       res = Crypto.sign({
         accounts,
       })
-    } else if (startCycle || endCycle) {
-      const from = startCycle ? startCycle : 0
+    } else if (startCycle || startCycle === 0) {
+      const from = startCycle
       const to = endCycle ? endCycle : from
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
@@ -572,8 +571,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
         return
       }
       transactions = (await TransactionDB.queryLatestTransactions(count)) || []
-    } else if (start || end) {
-      const from = start ? start : 0
+    } else if (start || start === 0) {
+      const from = start
       const to = end ? end : from
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
@@ -598,8 +597,8 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
       res = Crypto.sign({
         transactions,
       })
-    } else if (startCycle || endCycle) {
-      const from = startCycle ? startCycle : 0
+    } else if (startCycle || startCycle === 0) {
+      const from = startCycle
       const to = endCycle ? endCycle : from
       if (!(from >= 0 && to >= from) || Number.isNaN(from) || Number.isNaN(to)) {
         reply.send(
