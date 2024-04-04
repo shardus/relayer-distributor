@@ -1,7 +1,6 @@
 # Data Distributor
 
-As per the new [Data Distribution Protocol Doc](https://docs.google.com/document/d/18C5Zao5xxqy3kxSSTODkZEW3Ei0R9HI4OpyY5dSX-LU/edit?usp=sharing),
-the **Distributor** service is meant for serving real-time data of the network (termed in the code as `FIREHOSE` data), which includes `Cycle Data`, `Original Transaction Data` and `Receipt Data`, over a socket connection to its **Collector** clients.
+The Distributor service is designed to provide real-time network data, referred to as FIREHOSE data, including `Cycle Data`, `Original Transaction Data` and `Receipt Data`, to its **Collector** clients over a socket connection.
 
 # Working
 
@@ -13,12 +12,12 @@ the **Distributor** service is meant for serving real-time data of the network (
 
 There are two scenarios in which the distributor service is used:
 
-- With an [**Archiver**](https://gitlab.com/shardus/archive/archive-server) service.
-- With a [**Collector**](https://gitlab.com/shardus/relayer/collector) service.
+- With an [**Archiver**](https://gitlab.com/shardus/archive/archive-server) service
+- With a [**Collector**](https://gitlab.com/shardus/relayer/collector) service
 
 In both cases the following steps are required to be followed:
 
-1. In the `distributor-config.json`:
+1. Configure `distributor-config.json`:
 
 - Set **`ARCHIVER_DB_PATH`H** to the relative path or the absolute path of the database (that ends with `.sqlite3`) file of the archiver/collector service.
 - Set the **`DATA_LOG_DIR`** to the relative path or the absolute path of the directory where the archiver/collector service writes the data log files (path to the `/data-logs/<archiverip_port>` folder).
@@ -49,12 +48,16 @@ In both cases the following steps are required to be followed:
 
 2. Install all the dependencies:
 
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
 3. Run the distributor service:
 
-   ```bash
-   npm run start
-   ```
+```bash
+npm run start
+```
+
+## Contributing
+
+Contributions to Shardeum Explorer are highly encouraged! We welcome everyone to participate in our codebases, issue trackers, and any other form of communication. However, we expect all contributors to adhere to our [code of conduct](./CODE_OF_CONDUCT.md) to ensure a positive and collaborative environment for all involved in the project.
