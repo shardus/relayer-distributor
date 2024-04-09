@@ -686,22 +686,17 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
     )
   })
 
-  // TODO: Put this endpoint behind the debug middleware
-  // Debug Config Endpoint
-  server.get(
-    '/config',
-    // {
-    //   preHandler: async (_request, reply) => {
-    //     isDebugMiddleware(_request, reply)
-    //   },
-    // },
-    (_request, reply) => {
-      const res = Crypto.sign({
-        config,
-      })
-      reply.send(res)
+  server.get('/config', (_request, reply) => {
+    config.DISTRIBUTOR_PUBLIC_KEY
+    const distributorConfig = {
+      DISTRIBUTOR_IP: config.DISTRIBUTOR_IP,
+      DISTRIBUTOR_PORT: config.DISTRIBUTOR_PORT,
+      DISTRIBUTOR_PUBLIC_KEY: config.DISTRIBUTOR_PUBLIC_KEY,
+      limitToSubscribersOnly: config.limitToSubscribersOnly,
+      subscribers: config.subscribers,
     }
-  )
+    reply.send({ config: distributorConfig })
+  })
 }
 
 export const validateRequestData = (

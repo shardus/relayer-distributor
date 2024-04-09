@@ -19,21 +19,6 @@
       "publicKey": "ffdb37f5b336bcdd8d4fc5b8919aaf5c0230fb0341de7752a986cd7b255896cc",
       "expirationTimestamp": 0,
       "subscriptionType": "FIREHOSE"
-    },
-    {
-      "publicKey": "1d7822b284b1921b552a2b1a6ec9cd17179f7bf4bbc3b7e9045e84a1d13516bc",
-      "expirationTimestamp": 0,
-      "subscriptionType": "FIREHOSE"
-    },
-    {
-      "publicKey": "c952091e2119340b933990809f0896cd783f3cecb943c4826e9face210cf2d10",
-      "expirationTimestamp": 0,
-      "subscriptionType": "FIREHOSE"
-    },
-    {
-      "publicKey": "a7da632db1c9a15676fa090c73fcad0ef2850d7c4d1503f4485724dd37b71b86",
-      "expirationTimestamp": 0,
-      "subscriptionType": "FIREHOSE"
     }
   ]
 }
