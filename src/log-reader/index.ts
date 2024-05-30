@@ -147,7 +147,7 @@ class DataLogReader extends EventEmitter {
                 // End the interval
                 clearInterval(fileStreamer)
               } else {
-                const parse = JSON.parse(data)
+                const parse = StringUtils.safeJsonParse(data)
                 totalNumberOfEntries += 1
                 /* prettier-ignore */ if (config.VERBOSE) console.log(`${this.dataName}-data`, data)
                 this.emit(`${this.dataName}-data`, parse)

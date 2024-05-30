@@ -3,7 +3,7 @@ import * as Crypto from '../utils/Crypto'
 import { join } from 'path'
 import { config, overrideDefaultConfig } from '../Config'
 import DataLogReader from '../log-reader'
-import { IncomingMessage } from 'http'
+import { Utils as StringUtils } from '@shardus/types'
 
 const FILE = join(process.cwd(), 'distributor-config.json')
 overrideDefaultConfig(FILE, process.env, process.argv)
@@ -87,7 +87,7 @@ export const registerParentProcessListener = (): void => {
 const sendDataToAllClients = ({ signedData }: { signedData: Record<string, unknown> }): void => {
   for (const client of socketClientMap.values()) {
     client.send(
-      JSON.stringify({
+      StringUtils.safeStringify({
         ...signedData,
       })
     )

@@ -72,7 +72,7 @@ const initSocketServer = async (httpServer: http.Server, worker: Worker): Promis
   httpServer.on('upgrade', (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => {
     const queryObject = url.parse(req.url!, true).query
     const decodedData = decodeURIComponent(queryObject.data as string)
-    const clientData = JSON.parse(decodedData)
+    const clientData = StringUtils.safeJsonParse(decodedData)
 
     const auth = validateRequestData(clientData, {
       collectorInfo: 'o',

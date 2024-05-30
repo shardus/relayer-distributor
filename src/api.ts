@@ -11,6 +11,7 @@ import * as TransactionDB from './dbstore/transactions'
 import * as ReceiptDB from './dbstore/receipts'
 import * as OriginalTxDB from './dbstore/originalTxsData'
 import { distributorSubscribers } from './distributor/utils'
+import { Utils as StringUtils } from '@shardus/types'
 
 const TXID_LENGTH = 64
 export const MAX_ACCOUNTS_PER_REQUEST = 1000
@@ -170,7 +171,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
     } else if (txIdList) {
       let txIdListArr: string[] = []
       try {
-        txIdListArr = JSON.parse(txIdList)
+        txIdListArr = StringUtils.safeJsonParse(txIdList)
       } catch (e) {
         reply.send(
           Crypto.sign({
@@ -308,7 +309,7 @@ export function registerRoutes(server: FastifyInstance<Server, IncomingMessage, 
     } else if (txIdList) {
       let txIdListArr: string[] = []
       try {
-        txIdListArr = JSON.parse(txIdList)
+        txIdListArr = StringUtils.safeJsonParse(txIdList)
       } catch (e) {
         reply.send(
           Crypto.sign({
