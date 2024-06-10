@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import * as Logger from './Logger'
 import * as merge from 'deepmerge'
 import * as minimist from 'minimist'
+import { Utils as StringUtils } from '@shardus/types'
 
 export interface Config {
   DISTRIBUTOR_IP: string
@@ -17,7 +18,6 @@ export interface Config {
   DATA_LOG_DIR: string
   FILE_STREAM_INTERVAL_MS: number
   MAX_CLIENTS_PER_CHILD: number
-  useSerialization: boolean
   limitToSubscribersOnly: boolean
   subscribers: [] | Subscriber[]
 }
@@ -38,7 +38,6 @@ let config: Config = {
   FILE_STREAM_INTERVAL_MS: 100, // Check for new data every 100 ms
   MAX_CLIENTS_PER_CHILD: 2,
   VERBOSE: false,
-  useSerialization: true,
   limitToSubscribersOnly: false,
   subscribers: [],
 }
@@ -64,7 +63,7 @@ export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args
   try {
     // Disabling eslint rule because the file is not user-controlled and is a static path
     // eslint-disable-next-line security/detect-non-literal-fs-filename
-    const fileConfig = JSON.parse(readFileSync(file, { encoding: 'utf8' }))
+    const fileConfig = StringUtils.safeJsonParse(readFileSync(file, { encoding: 'utf8' }))
     const overwriteMerge = (target: [], source: []): [] => source
     config = merge(config, fileConfig, { arrayMerge: overwriteMerge })
   } catch (err) {
@@ -89,7 +88,7 @@ export function overrideDefaultConfig(file: string, env: NodeJS.ProcessEnv, args
           try {
             const parameterStr = env[param]
             if (parameterStr) {
-              const parameterObj = JSON.parse(parameterStr)
+              const parameterObj = StringUtils.safeJsonParse(parameterStr)
               config[param] = parameterObj
             }
           } catch (e) {

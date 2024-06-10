@@ -3,6 +3,7 @@
 
 import * as crypto from '@shardus/crypto-utils'
 import * as WebSocket from 'ws'
+import { Utils as StringUtils } from '@shardus/types'
 
 // Initialize the cryptographic utility library with a specific key.
 crypto.init('69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc')
@@ -19,8 +20,8 @@ const data: any = {
   sender: devAccount.publicKey,
   collectorInfo: {
     publicKey: '', // Check the collector's config file for the public key
-    secretKey: // Check the collector's config file for the secret key
-      '',
+    // Check the collector's config file for the secret key
+    secretKey: '',
   },
 }
 
@@ -28,7 +29,7 @@ const data: any = {
 crypto.signObj(data, devAccount.secretKey, devAccount.publicKey)
 
 // Convert the data to a URL-encoded JSON string.
-const dataString = encodeURIComponent(JSON.stringify(data))
+const dataString = encodeURIComponent(StringUtils.safeStringify(data))
 
 // Open a WebSocket connection to the server and include the data as a query parameter in the URL.
 const ws = new WebSocket(`ws://127.0.0.1:6100?data=${dataString}`)

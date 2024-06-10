@@ -1,5 +1,6 @@
 import * as crypto from '@shardus/crypto-utils'
 import fetch from 'node-fetch'
+import { Utils as StringUtils } from '@shardus/types'
 
 //run by entering command "ts-node api-tester.ts" in terminal
 
@@ -22,7 +23,7 @@ fetch('http://127.0.0.1:6100/totalData', {
   // fetch('http://127.0.0.1:6100/cycleinfo', {
   // fetch('http://127.0.0.1:6100/receipt', {
   method: 'post',
-  body: JSON.stringify(data),
+  body: StringUtils.safeStringify(data),
   headers: { 'Content-Type': 'application/json' },
   timeout: 2000,
 })

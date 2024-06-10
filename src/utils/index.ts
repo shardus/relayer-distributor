@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import { config } from '../Config'
 import * as crypto from './Crypto'
 import * as Logger from '../Logger'
+import { Utils as StringUtils } from '@shardus/types'
 
 export interface DistributorInfo {
   ip: string
@@ -25,7 +26,9 @@ export function setHashKey(key: string): void {
 export function initLogger(): void {
   let logsConfig: Logger.LogsConfiguration
   try {
-    logsConfig = JSON.parse(readFileSync(resolve(__dirname, '../../distributor-log.json'), 'utf8'))
+    logsConfig = StringUtils.safeJsonParse(
+      readFileSync(resolve(__dirname, '../../distributor-log.json'), 'utf8')
+    )
   } catch (err) {
     console.log('Failed to parse distributor log file:', err)
   }

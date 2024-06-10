@@ -8,6 +8,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as EventEmitter from 'events'
 import * as readline from 'readline'
+import { Utils as StringUtils } from '@shardus/types'
 
 import { config } from '../Config'
 class DataLogReader extends EventEmitter {
@@ -147,7 +148,7 @@ class DataLogReader extends EventEmitter {
                 // End the interval
                 clearInterval(fileStreamer)
               } else {
-                const parse = JSON.parse(data)
+                const parse = StringUtils.safeJsonParse(data)
                 totalNumberOfEntries += 1
                 /* prettier-ignore */ if (config.VERBOSE) console.log(`${this.dataName}-data`, data)
                 this.emit(`${this.dataName}-data`, parse)
