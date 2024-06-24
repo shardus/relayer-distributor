@@ -15,6 +15,7 @@ import {
   updateConfigAndSubscriberList,
   registerWorkerMessageListener,
 } from './distributor/utils'
+import { initAjvSchemas } from './types/ajv/Helpers'
 
 const cluster = clusterModule as unknown as clusterModule.Cluster
 // Override default config params from config file, env vars, and cli args
@@ -56,6 +57,8 @@ const initDistributor = async (): Promise<void> => {
     const { worker } = cluster
     await initHttpServer(worker)
   }
+  // Init AJV schemas
+  initAjvSchemas()
 }
 
 const addSigListeners = (): void => {
