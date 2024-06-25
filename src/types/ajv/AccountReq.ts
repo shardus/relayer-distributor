@@ -12,18 +12,29 @@ export const schemaAccountReq = {
     page: { type: ['number', 'null'] },
     accountId: { type: ['string', 'null'] },
     sender: { type: 'string' },
-    sign: { owner: 'string', sig: 'string' }, // Adjust the type as per the actual definition of 'sign'
+    sign: {
+      type: 'object',
+      properties: {
+        owner: { type: 'string' },
+        sig: { type: 'string' },
+      },
+      required: ['owner', 'sig'],
+    }, // Adjust the type as per the actual definition of 'sign'
   },
-  additionalProperties: false,
+  additionalProperties: true,
   required: ['sender', 'sign'],
+}
+export function initAccountReq(): void {
+  addSchemaDependencies()
+  addSchemas()
 }
 
 // Add schema dependencies
-export function addSchemaDependencies(): void {
+function addSchemaDependencies(): void {
   // No dependencies for ReceiptRequest
 }
 
 // Register schemas
-export function addSchemas(): void {
+function addSchemas(): void {
   addSchema('AccountReq', schemaAccountReq)
 }

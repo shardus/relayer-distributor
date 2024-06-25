@@ -1,6 +1,6 @@
 import { initAjvSchemas, verifyPayload } from '../../../../types/ajv/Helpers'
 
-describe('CycleInfo req test', () => {
+describe('TotalData req test', () => {
   beforeAll(() => {
     initAjvSchemas()
   })
@@ -18,8 +18,8 @@ describe('CycleInfo req test', () => {
     ]
     const otherInvalidObject = [
       {
-        sender: '0x0',
-        sign: {},
+        sender: '0x01',
+        sign: '0x1',
         start: 'a',
         end: 'b',
         count: 'c',
@@ -45,7 +45,7 @@ describe('CycleInfo req test', () => {
       },
     ]
     test.each(invalidObjects)('should throw AJV error', (data) => {
-      const res = verifyPayload('CycleInfoReq', {
+      const res = verifyPayload('TotalDataReq', {
         start: 0,
         end: 0,
         count: 0,
@@ -57,16 +57,16 @@ describe('CycleInfo req test', () => {
       // expect(res[0]).toEqual(`should have required property 'sender': {"missingProperty":"sender"}`)
     })
     test.each(otherInvalidObject)('should throw AJV error', (data) => {
-      const res = verifyPayload('CycleInfoReq', {
+      const res = verifyPayload('TotalDataReq', {
         ...data,
       })
       console.log('res', res)
       expect(res.length).toBeGreaterThan(0)
-      expect(res[0].slice(0, 40)).toContain(`should be number,null`)
+      expect(res[0].slice(0, 40)).toContain(`should be object:`)
       // expect(res[0]).toEqual(`should be number,null: {"type":"number,null"}`)
     })
     test.each(validObjects)('should have no AJV error', (data) => {
-      const res = verifyPayload('CycleInfoReq', {
+      const res = verifyPayload('TotalDataReq', {
         ...data,
       })
       console.log('res', res)

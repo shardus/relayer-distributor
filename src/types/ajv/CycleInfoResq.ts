@@ -11,7 +11,7 @@ export const schemaCycleInfoResp = {
     typeProvider: { type: 'object' }, // TypeProvider
     statusCode: { type: 'number' },
   },
-  additionalProperties: false,
+  additionalProperties: true,
   required: ['raw', 'request', 'context', 'schemaCompiler', 'typeProvider'],
 }
 

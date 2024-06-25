@@ -7,9 +7,16 @@ export const schemaCycleInfoReq = {
     end: { type: ['number', 'null'] },
     count: { type: ['number', 'null'] },
     sender: { type: 'string' },
-    sign: { owner: 'string', sig: 'string' }, // Adjust the type as per the actual definition of 'sign'
+    sign: {
+      type: 'object',
+      properties: {
+        owner: { type: 'string' },
+        sig: { type: 'string' },
+      },
+      required: ['owner', 'sig'],
+    }, // Adjust the type as per the actual definition of 'sign'
   },
-  additionalProperties: false,
+  additionalProperties: true,
   required: ['sender', 'sign'],
 }
 export function initCycleInfoReq(): void {
