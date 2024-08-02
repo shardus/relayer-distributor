@@ -10,6 +10,7 @@ import { handleSocketRequest, registerParentProcessListener } from './child'
 import Fastify, { FastifyInstance } from 'fastify'
 import fastifyRateLimit from '@fastify/rate-limit'
 import { registerRoutes, validateRequestData } from '../api'
+import { healthCheckRouter } from '../routes/healthCheck'
 
 interface ClientRequestDataInterface {
   header: object
@@ -45,6 +46,7 @@ export const initHttpServer = async (worker: Worker): Promise<void> => {
     timeWindow: 10,
     allowList: ['127.0.0.1', '0.0.0.0'], // Excludes local IPs from rate limits
   })
+  await fastifyServer.register(healthCheckRouter)
 
   // Register API routes
   registerRoutes(fastifyServer as FastifyInstance<http.Server, http.IncomingMessage, http.ServerResponse>)
