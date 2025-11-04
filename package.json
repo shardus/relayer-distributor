@@ -1,5 +1,5 @@
 {
-  "name": "@shardeum-foundation/distributor",
+  "name": "@shardus/distributor",
   "version": "1.2.1",
   "description": "",
   "main": "./build/src/distributor.js",
@@ -34,7 +34,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/shardeum/relayer-distributor"
+    "url": "https://github.com/shardus/relayer-distributor.git"
   },
   "publishConfig": {
     "access": "public"
@@ -42,9 +42,9 @@
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/shardeum/relayer-distributor/issues"
+    "url": "https://github.com/shardus/relayer-distributor.git/issues"
   },
-  "homepage": "https://github.com/shardeum/relayer-distributor#readme",
+  "homepage": "https://github.com/shardus/relayer-distributor.git#readme",
   "engines": {
     "node": "20.19.3"
   },
